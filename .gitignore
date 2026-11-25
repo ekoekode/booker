@@ -1,0 +1,12 @@
+node_modules/
+main.js
+*.map
+.DS_Store
+tools/html2pdf
+models/
+runtime/
+release/
+models-gen/
+scripts/.fetch-resources.bundle.mjs
+dictionaries/
+basemap/

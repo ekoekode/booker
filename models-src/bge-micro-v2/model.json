@@ -1,0 +1,1 @@
+{ "id": "bge-micro-v2", "label": "bge-micro-v2 (fastest)", "dim": 384, "pooling": "mean", "maxTokens": 256, "queryPrefix": "", "file": "model_quantized.onnx", "license": "MIT", "version": 1 }

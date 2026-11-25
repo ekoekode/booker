@@ -1,0 +1,19 @@
+{
+  "corkboardPositions": {
+    "StoryLine/Probe/Scenes/Act 1/01-01 Opening.md": {
+      "x": 0,
+      "y": 0,
+      "z": 1
+    },
+    "StoryLine/Probe/Scenes/Act 2/02-01 Third.md": {
+      "x": 640,
+      "y": 0,
+      "z": 3
+    },
+    "StoryLine/Probe/Scenes/Act 2/02-01 Second.md": {
+      "x": 320,
+      "y": 0,
+      "z": 2
+    }
+  }
+}

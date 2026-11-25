@@ -1,0 +1,4 @@
+bge-micro-v2 (TaylorAI), the model shipped in models/bge-micro-v2
+
+Licensed under the MIT License, as stated on its model card:
+https://huggingface.co/TaylorAI/bge-micro-v2

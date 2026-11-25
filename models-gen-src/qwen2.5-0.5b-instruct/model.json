@@ -1,0 +1,1 @@
+{ "id": "qwen2.5-0.5b-instruct", "label": "Qwen2.5-0.5B-Instruct", "file": "model_q4.onnx", "license": "Apache-2.0", "chunkWords": 450, "promptTokensPerSec": 200, "outputTokensPerSec": 18 }

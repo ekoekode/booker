@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booker: write the book, study the Word</title>
+<meta name="description" content="A free Obsidian plugin for writing books and for Bible study and scholarship, with a built-in Bible library, Church Fathers commentary, word study and export to Word, ePub and PDF.">
+<style>
+:root{
+  --ink:#0a0912; --ink2:#11101c; --card:#161426; --line:rgba(255,255,255,.09);
+  --text:#ecebf5; --mute:#a3a1b8; --faint:#6f6d86;
+  --violet:#8b6cff; --violet2:#b6a1ff; --gold:#f2c46d; --rose:#ff7eb6; --teal:#5fe0c2;
+  --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+
+/* ambient glow */
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.7;pointer-events:none;animation:drift 14s ease-in-out infinite alternate;will-change:transform}
+.o1{width:520px;height:520px;background:radial-gradient(circle,#6d4cff,transparent 70%);top:-120px;left:-120px}
+.o2{width:460px;height:460px;background:radial-gradient(circle,#ff7eb6,transparent 70%);top:80px;right:-140px;opacity:.28;animation-delay:-6s}
+.o3{width:420px;height:420px;background:radial-gradient(circle,#f2c46d,transparent 70%);top:520px;left:38%;opacity:.14;animation-delay:-11s}
+@keyframes drift{from{transform:translate(-60px,-30px) scale(.9)}to{transform:translate(120px,90px) scale(1.3)}}
+
+/* nav */
+nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(10,9,18,.72);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:28px;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:22px;font-weight:600;letter-spacing:.2px}
+.logo i{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--violet),var(--rose));display:grid;place-items:center;font-style:normal;font-size:17px;color:#fff;box-shadow:0 6px 20px rgba(139,108,255,.45)}
+.nav .links{display:flex;gap:26px;margin-left:auto;font-size:14.5px;color:var(--mute)}
+.nav .links a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:999px;font-weight:600;font-size:15px;border:1px solid var(--line);transition:.2s;cursor:pointer}
+.btn.pri{background:linear-gradient(135deg,var(--violet),#a07bff 55%,var(--rose));color:#fff;border:0;box-shadow:0 10px 30px rgba(139,108,255,.38)}
+.btn.pri{position:relative;overflow:hidden}
+.btn.pri::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-20deg);animation:shine 4.5s ease-in-out infinite}
+@keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+.btn.pri:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 22px 50px rgba(139,108,255,.65)}
+.btn.ghost{background:rgba(255,255,255,.04)}
+.btn.ghost:hover{background:rgba(255,255,255,.09)}
+.nav .btn{padding:9px 18px;font-size:14px}
+
+/* hero */
+.hero{position:relative;padding:92px 0 40px;text-align:center;overflow:hidden}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;padding:6px 14px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--violet2);background:rgba(139,108,255,.08)}
+.eyebrow b{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 10px var(--teal)}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(40px,7vw,84px);line-height:1.04;letter-spacing:-1.5px;margin:24px auto 22px;max-width:15ch}
+h1 em{font-style:italic;background:linear-gradient(100deg,var(--violet2),var(--rose),var(--gold),var(--violet2));background-size:250% 100%;animation:sheen 6s linear infinite;-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes sheen{to{background-position:250% 0}}
+.lead{font-size:clamp(17px,2vw,21px);color:var(--mute);max-width:640px;margin:0 auto 34px}
+.cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.trust{display:flex;gap:10px 26px;justify-content:center;flex-wrap:wrap;margin-top:26px;font-size:13.5px;color:var(--faint)}
+.trust span::before{content:"✦";color:var(--gold);margin-right:8px}
+
+.stage{position:relative;margin:64px auto 0;max-width:1060px;perspective:1100px}
+.win{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#1b1a29;box-shadow:0 40px 120px rgba(0,0,0,.65),0 0 0 1px rgba(255,255,255,.04),0 0 120px rgba(139,108,255,.25);transition:transform .15s ease-out;transform-style:preserve-3d;will-change:transform}
+.win .bar{display:flex;gap:7px;align-items:center;padding:11px 14px;background:#21203280;border-bottom:1px solid var(--line)}
+.win .bar i{width:11px;height:11px;border-radius:50%;background:#ff5f57}
+.win .bar i:nth-child(2){background:#febc2e}.win .bar i:nth-child(3){background:#28c840}
+.win img{width:100%}
+.chip{position:absolute;padding:12px 18px;border-radius:14px;background:rgba(28,25,48,.92);border:1px solid rgba(139,108,255,.45);backdrop-filter:blur(10px);font-size:14px;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 30px rgba(139,108,255,.25);animation:bob 5s ease-in-out infinite;transform:translateZ(80px);will-change:transform}
+.chip b{display:block;font-size:12px;color:var(--mute);font-weight:500}
+.chip.a{left:-34px;top:22%;} .chip.b{right:-30px;top:48%;animation-delay:-2s} .chip.c{left:6%;bottom:-22px;animation-delay:-4s}
+@keyframes bob{0%,100%{translate:0 0;rotate:-1.5deg}50%{translate:0 -22px;rotate:1.5deg}}
+
+/* band */
+.band{border-block:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);margin-top:100px}
+.band .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding-block:38px;text-align:center}
+.band strong{display:block;font-family:var(--serif);font-size:clamp(22px,2.5vw,32px);white-space:nowrap;font-weight:600;background:linear-gradient(120deg,#fff,var(--violet2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.band span{font-size:14px;color:var(--mute)}
+
+/* sections */
+section{position:relative;padding:112px 0}
+.tag{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--violet2);font-weight:600}
+h2{font-family:var(--serif);font-weight:600;font-size:clamp(32px,4.4vw,54px);line-height:1.1;letter-spacing:-.8px;margin:14px 0 18px}
+p.sub{color:var(--mute);font-size:18px;max-width:560px}
+.split{display:grid;grid-template-columns:1fr 1.25fr;gap:64px;align-items:center}
+.split.flip{grid-template-columns:1.25fr 1fr}
+.split.flip .copy{order:2}
+ul.tick{list-style:none;margin-top:26px;display:grid;gap:14px}
+ul.tick li{display:flex;gap:12px;color:#d9d7ea;font-size:16.5px}
+ul.tick li::before{content:"";flex:none;width:20px;height:20px;margin-top:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--violet2),var(--violet));box-shadow:0 0 14px rgba(139,108,255,.55)}
+.shot{border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#1b1a29;box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 90px rgba(139,108,255,.16)}
+.shot img{width:100%}
+.shot.tilt{transform:perspective(1200px) rotateY(var(--ry,-12deg)) rotateX(var(--rx,3deg)) scale(var(--sc,1));transition:transform .18s ease-out,box-shadow .3s;will-change:transform;box-shadow:calc(var(--ry,-12deg) * -2.2) 40px 90px rgba(0,0,0,.65),0 0 110px rgba(139,108,255,.26)}
+
+/* phone trio */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:56px}
+.ph{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:14px 14px 22px;transition:.3s}
+.ph{transform-style:preserve-3d;will-change:transform}
+.ph:hover{border-color:rgba(139,108,255,.6);box-shadow:0 40px 90px rgba(139,108,255,.3)}
+.ph .img{border-radius:14px;overflow:hidden;height:420px;background:#1b1a29}
+.ph .img img{width:100%;height:100%;object-fit:cover;object-position:top}
+.ph h3{font-family:var(--serif);font-size:23px;margin:20px 8px 6px}
+.ph p{color:var(--mute);font-size:15px;margin:0 8px}
+
+/* chips */
+.kinds{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+.kinds span{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:14.5px;color:#dcdaf0}
+.kinds span:nth-child(3n+1){border-color:rgba(139,108,255,.45)}
+.kinds span:nth-child(3n+2){border-color:rgba(242,196,109,.4)}
+.kinds span:nth-child(3n){border-color:rgba(95,224,194,.4)}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:56px}
+.fc{padding:26px 22px;border-radius:18px;background:var(--card);border:1px solid var(--line);transition:.25s;position:relative;overflow:hidden}
+.fc{will-change:transform}
+.fc:hover{border-color:rgba(139,108,255,.6);box-shadow:0 30px 70px rgba(139,108,255,.2)}
+.fc::after{content:"";position:absolute;inset:auto -30% -60% auto;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(139,108,255,.22),transparent 70%)}
+.fc .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:21px;margin-bottom:16px;background:rgba(139,108,255,.14);border:1px solid rgba(139,108,255,.3)}
+.fc:nth-child(4n+2) .ic{background:rgba(242,196,109,.12);border-color:rgba(242,196,109,.32)}
+.fc:nth-child(4n+3) .ic{background:rgba(95,224,194,.12);border-color:rgba(95,224,194,.3)}
+.fc:nth-child(4n) .ic{background:rgba(255,126,182,.12);border-color:rgba(255,126,182,.3)}
+.fc h3{font-family:var(--serif);font-size:20px;margin-bottom:8px}
+.fc p{color:var(--mute);font-size:14.5px}
+
+/* gallery */
+.gal{display:flex;gap:20px;overflow-x:auto;padding:10px 24px 30px;margin:48px -24px 0;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#3a3855 transparent}
+.gal figure{flex:none;width:min(560px,82vw);scroll-snap-align:start;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--card)}
+.gal figure.tall{width:min(300px,70vw)}
+.gal img{width:100%;height:340px;object-fit:cover;object-position:top}
+.gal figure.tall img{height:340px}
+.gal figcaption{padding:14px 18px;font-size:14px;color:var(--mute)}
+
+/* install */
+.install{background:linear-gradient(180deg,transparent,rgba(139,108,255,.07),transparent)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:50px;counter-reset:s}
+.step{padding:28px;border-radius:18px;background:var(--card);border:1px solid var(--line);counter-increment:s}
+.step::before{content:counter(s);display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet),var(--rose));font-weight:700;margin-bottom:16px}
+.step h3{font-family:var(--serif);font-size:21px;margin-bottom:8px}
+.step p{color:var(--mute);font-size:15px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:rgba(255,255,255,.07);padding:2px 7px;border-radius:6px;color:var(--violet2)}
+.private{margin-top:72px;padding:40px;border-radius:24px;border:1px solid rgba(95,224,194,.28);background:linear-gradient(135deg,rgba(95,224,194,.08),rgba(139,108,255,.06));display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:center}
+.private .lock{font-size:46px}
+.private h3{font-family:var(--serif);font-size:26px;margin-bottom:6px}
+.private p{color:var(--mute)}
+
+footer{border-top:1px solid var(--line);padding:46px 0;color:var(--faint);font-size:14px}
+footer .wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+
+/* reveal */
+.rv{opacity:0;transform:perspective(900px) translateY(70px) rotateX(14deg) scale(.94);transition:opacity .9s ease,transform 1s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+#progress{position:fixed;top:0;left:0;height:3px;width:100%;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,var(--violet),var(--rose),var(--gold));z-index:60}
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}.orb,.chip{animation:none}html{scroll-behavior:auto}}
+
+@media (max-width:940px){
+  #bible .grid{grid-template-columns:1fr !important}
+  .split,.split.flip{grid-template-columns:1fr;gap:38px}.split.flip .copy{order:0}
+  .grid{grid-template-columns:repeat(2,1fr)}.trio,.steps{grid-template-columns:1fr}
+  .band .wrap{grid-template-columns:repeat(2,1fr)}
+  .chip{display:none}.nav .links{display:none}.nav .btn{margin-left:auto}
+  .shot.tilt,.flip .shot.tilt{transform:none}.private{grid-template-columns:1fr}
+}
+@media (max-width:560px){.grid{grid-template-columns:1fr}section{padding:76px 0}.hero{padding-top:60px}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<nav><div class="wrap nav">
+  <a class="logo" href="#top"><i>B</i>Booker</a>
+  <div class="links"><a href="#why">Why</a><a href="#study">Study</a><a href="#write">Write</a><a href="#plan">Plan</a><a href="#bible">Bible project</a><a href="#install">Install</a></div>
+  <a class="btn pri" href="https://github.com/ekoekode/booker/releases/latest">Get Booker</a>
+</div></nav>
+
+<header class="hero" id="top">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  <div class="wrap" style="position:relative">
+    <span class="eyebrow"><b></b>A free Obsidian plugin for writers and students of Scripture</span>
+    <h1>Write the book. <em>Study the Word. Be ready.</em></h1>
+    <p class="lead">Booker began as a studio for writing any kind of book. It is now also a serious workbench for Bible study and scholarship: the Hebrew and Greek, the Church Fathers and your sources beside the book you are writing. Free, open source, and works offline.</p>
+    <div class="cta"><a class="btn pri" href="https://github.com/ekoekode/booker/releases/latest">Download Booker</a><a class="btn ghost" href="#why">Why we built it ↓</a></div>
+    <div class="trust"><span>Free and open source</span><span>Works offline</span><span>Mac, Windows and Linux</span><span>Your writing stays plain files</span></div>
+
+    <div class="stage">
+      <div class="win" id="tilt"><div class="bar"><i></i><i></i><i></i></div><img src="img/hub-and-scene.jpg" alt="The Booker hub beside a scene being written"></div>
+      <div class="chip a"><b>Today</b>715 / 1,000 words · 1-day streak</div>
+      <div class="chip b"><b>Write</b>Acts, chapters and scenes</div>
+      <div class="chip c"><b>Typeset as you type</b>Indents and spacing, text untouched</div>
+    </div>
+  </div>
+</header>
+
+<div class="band"><div class="wrap">
+  <div class="rv"><strong>Word · ePub · PDF</strong><span>export with real footnotes</span></div>
+  <div class="rv"><strong>100% offline</strong><span>nothing leaves your computer</span></div>
+  <div class="rv"><strong>Plain files</strong><span>your writing, no lock-in</span></div>
+  <div class="rv"><strong>Free</strong><span>MIT licensed</span></div>
+</div></div>
+
+
+<section id="why" style="padding-bottom:40px">
+  <div class="wrap" style="max-width:860px">
+    <div class="rv" style="text-align:center">
+      <div class="tag">Why Booker exists</div>
+      <h2>The time is short, and the work matters.</h2>
+      <p class="sub" style="margin:0 auto 22px;max-width:720px">We believe Jesus is coming back soon. Artificial intelligence is changing how people think and write, and the world is in upheaval. We read these things in the light of Scripture, and they seem to us to point to the season we are in.</p>
+      <p class="sub" style="margin:0 auto 22px;max-width:720px">So we want believers to have the best tools to study Scripture carefully and to write down what they find: sermons, devotionals, commentaries, teaching and books. Booker started as a way to write any book. It is now also a place to dig into the text itself, offline and on your own computer, with nothing to sign up for.</p>
+      <p style="font-family:var(--serif);font-size:24px;font-style:italic;color:var(--violet2);margin-top:30px">Whatever you write, may it point people to Christ.</p>
+    </div>
+  </div>
+</section>
+<section id="study">
+  <div class="wrap split flip">
+    <div class="rv"><div class="shot tilt"><img src="img/bible-reader-commentary.jpg" alt="Bible reader with Church Fathers commentary and reference libraries" loading="lazy"></div></div>
+    <div class="copy rv">
+      <div class="tag">Study</div>
+      <h2>Walk the ancient paths with the fathers of the faith.</h2>
+      <p class="sub">Read, compare and cite without leaving the page you are writing. Download what you want from one window.</p>
+      <ul class="tick">
+        <li>Bible reader with the Church Fathers' commentary beside every verse</li>
+        <li>Hebrew and Greek word study with Strong's numbers, line by line</li>
+        <li>Several translations, and verses inserted with a footnote and reference in your own style</li>
+        <li>Dictionary and thesaurus, plus search by meaning that runs on your own computer</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="write">
+  <div class="wrap split">
+    <div class="copy rv">
+      <div class="tag">Write</div>
+      <h2>And write it down.</h2>
+      <p class="sub">Your sermon series, study, commentary or novel is right there: today's words, your streak, a sprint timer, and every part one click away.</p>
+      <ul class="tick">
+        <li>Write, Plan, Codex and Export cards that scroll inside, with a filter that searches titles and text</li>
+        <li>Typeset writing mode: first-line indents, paragraph and dialogue spacing, even in the editor</li>
+        <li>Drag sections between chapters and parts, and name every level your own way</li>
+        <li>People and places are noticed as you write and added to the note for you</li>
+      </ul>
+    </div>
+    <div class="rv"><div class="shot tilt"><img src="img/board-two-level.jpg" alt="Booker's board and Today card in dark mode, for a sermon series" loading="lazy"></div></div>
+  </div>
+</section>
+
+<section id="plan" style="padding-top:20px">
+  <div class="wrap">
+    <div class="rv" style="text-align:center;max-width:720px;margin:0 auto">
+      <div class="tag">Plan</div>
+      <h2>See the whole story at once.</h2>
+      <p class="sub" style="margin:0 auto">Plotlines like a subway map, a timeline you can zoom, and a map of every place your characters have been.</p>
+    </div>
+    <div class="trio">
+      <div class="ph rv"><div class="img"><img src="img/view-plotlines-map.jpg" alt="Plotlines drawn as a subway map" loading="lazy"></div><h3>Plotlines</h3><p>A line for each plotline, a station for each scene. Branch, split and join.</p></div>
+      <div class="ph rv"><div class="img"><img src="img/view-timeline-map.jpg" alt="Timeline map with lanes" loading="lazy"></div><h3>Timeline</h3><p>Lanes for characters, places and plotlines. Zoom, pan, and drag a bar to change a date.</p></div>
+      <div class="ph rv"><div class="img"><img src="img/map-tab.jpg" alt="Map tab" loading="lazy"></div><h3>Map</h3><p>A real world map that works offline, or your own drawn worlds with their own grids.</p></div>
+    </div>
+  </div>
+</section>
+
+
+
+<section style="padding-top:20px">
+  <div class="wrap split">
+    <div class="copy rv">
+      <div class="tag">Every kind of book</div>
+      <h2>Sermons to novels.</h2>
+      <p class="sub">Each kind of book gets its own levels, statuses, beat sheets and first steps, so the tool fits the work.</p>
+      <div class="kinds"><span>Sermon series</span><span>Bible studies</span><span>Devotionals</span><span>Theology</span><span>Commentary</span><span>Fiction</span><span>Non-fiction</span><span>Reference works</span><span>Dictionaries</span><span>Your own template</span></div>
+    </div>
+    <div class="rv"><div class="shot tilt"><img src="img/hub-nonfiction-research.jpg" alt="Booker hub for a non-fiction book with research" loading="lazy"></div></div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:20px">
+  <div class="wrap">
+    <div class="rv" style="text-align:center;max-width:720px;margin:0 auto">
+      <div class="tag">And there's more</div>
+      <h2>Everything a long project needs.</h2>
+    </div>
+    <div class="grid">
+      <div class="fc rv"><div class="ic">📚</div><h3>Codex</h3><p>People, places, topics and categories of your own, with family trees and time-linked sequences.</p></div>
+      <div class="fc rv"><div class="ic">✍️</div><h3>Footnotes and citations</h3><p>Footnotes, Chicago-style citations and a bibliography, exported at the page foot or chapter end.</p></div>
+      <div class="fc rv"><div class="ic">🩺</div><h3>Project health</h3><p>Checks citations, footnotes, scripture, setups and payoffs, unfinished scenes and more.</p></div>
+      <div class="fc rv"><div class="ic">🛟</div><h3>Backups</h3><p>Full or incremental copies on a schedule, with restore into a new folder.</p></div>
+      <div class="fc rv"><div class="ic">🔎</div><h3>Search by meaning</h3><p>Find passages by what they say, not just the words. A small model runs on your computer.</p></div>
+      <div class="fc rv"><div class="ic">🧠</div><h3>Written summaries</h3><p>Optional AI summaries of scenes from a local model you download once.</p></div>
+      <div class="fc rv"><div class="ic">👥</div><h3>Share with a co-author</h3><p>A project is plain files in your vault, so it works with Collaborative Folders.</p></div>
+      <div class="fc rv"><div class="ic">📦</div><h3>One downloads window</h3><p>Bibles, Church Fathers, dictionaries, models and maps, each with a progress bar.</p></div>
+    </div>
+
+    <div class="gal">
+      <figure><img src="img/resource-manager.jpg" alt="Resource manager" loading="lazy"><figcaption>The Resource manager: every download in one place</figcaption></figure>
+      <figure class="tall"><img src="img/dictionary-card.jpg" alt="Dictionary card" loading="lazy"><figcaption>Dictionary and thesaurus beside your writing</figcaption></figure>
+      <figure><img src="img/project-health.jpg" alt="Project health" loading="lazy"><figcaption>Project health, before you export</figcaption></figure>
+      <figure><img src="img/word-study-page.jpg" alt="Word study page" loading="lazy"><figcaption>Word study: Hebrew and Greek, word for word</figcaption></figure>
+      <figure><img src="img/plan-061.jpg" alt="Plan bar" loading="lazy"><figcaption>The Plan card: progress by status</figcaption></figure>
+      <figure class="tall"><img src="img/export-window.jpg" alt="Export window" loading="lazy"><figcaption>Export to Word, ePub and PDF</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+
+<section id="bible" style="padding-top:20px">
+  <div class="wrap">
+    <div class="rv" style="text-align:center;max-width:760px;margin:0 auto">
+      <div class="tag">Free project to download</div>
+      <h2>The Bible, as a Booker project.</h2>
+      <p class="sub" style="margin:0 auto">Every dated event on a timeline, every person with their family, every place on a map. Open it in Booker, read the Bible beside it, and build your sermons, studies and books on top.</p>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);max-width:860px;margin:44px auto 0">
+      <div class="fc rv" style="text-align:center"><h3 style="font-size:40px" data-count="501">501</h3><p>dated events, from Creation to the early church, in 9 eras</p></div>
+      <div class="fc rv" style="text-align:center"><h3 style="font-size:40px" data-count="3068">3,068</h3><p>people, with their families and the lives of those with known dates</p></div>
+      <div class="fc rv" style="text-align:center"><h3 style="font-size:40px" data-count="1297">1,297</h3><p>places with coordinates, ready for Booker's map</p></div>
+    </div>
+    <div class="cta rv" style="margin-top:40px"><a class="btn pri" href="https://github.com/ekoekode/booker/releases/download/bible-project-v1/Booker-Bible-Project.zip">Download the Bible project (zip, 2 MB)</a><a class="btn ghost" href="https://github.com/ekoekode/booker#the-bible-project">Import instructions</a></div>
+    <p class="rv" style="text-align:center;color:var(--faint);font-size:13.5px;margin-top:22px;max-width:700px;margin-inline:auto">Contains no Bible text. Data from the Theographic Bible Metadata (Robert Rouse and contributors), with dates after Dr. Floyd Nolen Jones. Shared under Creative Commons Attribution-ShareAlike 4.0.</p>
+  </div>
+</section>
+
+<section class="install" id="install">
+  <div class="wrap">
+    <div class="rv" style="text-align:center;max-width:720px;margin:0 auto">
+      <div class="tag">Get started</div>
+      <h2>Three steps to your first chapter.</h2>
+      <p class="sub" style="margin:0 auto">You need Obsidian 1.5 or newer. One download covers Mac, Windows and Linux.</p>
+    </div>
+    <div class="steps">
+      <div class="step rv"><h3>Download</h3><p>Get the Booker zip from the releases page and unzip it. You will find a folder called <code>booker</code>.</p></div>
+      <div class="step rv"><h3>Copy it in</h3><p>Put that folder in <code>your vault/.obsidian/plugins/</code>, then turn on Booker under Community plugins.</p></div>
+      <div class="step rv"><h3>Start writing</h3><p>Run <code>Booker: New project</code>, pick your kind of book, and follow the checklist on the Today card.</p></div>
+    </div>
+    <div class="cta rv" style="margin-top:44px"><a class="btn pri" href="https://github.com/ekoekode/booker/releases/latest">Download from GitHub</a><a class="btn ghost" href="https://obsidian.md">Get Obsidian</a></div>
+
+    <div class="private rv">
+      <div class="lock">🔒</div>
+      <div><h3>Your writing stays yours.</h3><p>No accounts, no cloud, no tracking. Booker only goes online when you press a Download button or check for updates, and everything else, including search by meaning and the dictionary, runs on your own computer. On phones and tablets Booker works too, without the local search engine.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer><div class="wrap"><span class="logo" style="font-size:18px"><i style="width:24px;height:24px;font-size:14px">B</i>Booker</span><span>Free and open source, MIT licensed. Built for Obsidian, and for the church.</span><span><a href="https://github.com/ekoekode/booker">GitHub</a> · <a href="#top">Back to top ↑</a></span></div></footer>
+
+<script>
+  var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  var io = new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);var n=e.target.querySelector('[data-count]');if(n)count(n)}})},{threshold:.12});
+  document.querySelectorAll('.rv').forEach(function(el,i){el.style.transitionDelay=(i%4)*90+'ms';io.observe(el)});
+
+  /* numbers count up when they appear */
+  function count(el){
+    if(reduce||el.dataset.done)return; el.dataset.done=1;
+    var to=+el.dataset.count,t0=performance.now(),dur=1400;
+    (function step(t){var k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=Math.round(to*e).toLocaleString('en-US');if(k<1)requestAnimationFrame(step)})(t0);
+  }
+
+  if(!reduce){
+    /* mouse tilt: the hero window, the cards and the phone frames lean toward the pointer */
+    function tilt(el,mx,my,lift){
+      el.addEventListener('mousemove',function(e){var r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+        el.style.transition='transform .08s';el.style.transform='perspective(900px) rotateY('+(x*mx)+'deg) rotateX('+(-y*my)+'deg) translateY('+lift+'px) scale(1.03)'});
+      el.addEventListener('mouseleave',function(){el.style.transition='transform .5s';el.style.transform=''});
+    }
+    var win=document.getElementById('tilt'),stage=win.parentElement,chips=[].slice.call(document.querySelectorAll('.chip'));
+    stage.addEventListener('mousemove',function(e){var r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;
+      win.style.transform='rotateY('+(x*18)+'deg) rotateX('+(-y*12)+'deg)';
+      chips.forEach(function(c,i){var d=(i+1)*22;c.style.marginLeft=(-x*d)+'px';c.style.marginTop=(-y*d)+'px'})});
+    stage.addEventListener('mouseleave',function(){win.style.transform='';chips.forEach(function(c){c.style.marginLeft=c.style.marginTop=''})});
+    document.querySelectorAll('.ph').forEach(function(el){tilt(el,16,12,-10)});
+    document.querySelectorAll('.fc').forEach(function(el){tilt(el,14,12,-6)});
+
+    /* scroll: screenshots swing from tilted to flat as they reach the middle, the lights drift, and a bar tracks the page */
+    var shots=[].slice.call(document.querySelectorAll('.shot.tilt')),orbs=[].slice.call(document.querySelectorAll('.orb')),bar=document.getElementById('progress'),ticking=false;
+    function frame(){
+      var vh=innerHeight,y=scrollY;
+      shots.forEach(function(el){var r=el.getBoundingClientRect(),p=Math.max(-1,Math.min(1,(r.top+r.height/2-vh/2)/(vh*.7))),flip=el.closest('.flip')?-1:1;
+        el.style.setProperty('--ry',(flip*-(4+Math.abs(p)*16)*(p<0?-1:1)*(p<0?-1:1))+'deg');
+        el.style.setProperty('--rx',(p*10)+'deg');el.style.setProperty('--sc',(1-Math.abs(p)*.06));});
+      orbs.forEach(function(o,i){o.style.top=(['-120px','80px','520px'][i]);o.style.translate='0 '+(y*(.18+i*.08))+'px'});
+      bar.style.transform='scaleX('+(y/Math.max(1,document.body.scrollHeight-vh))+')';
+      ticking=false;
+    }
+    addEventListener('scroll',function(){if(!ticking){ticking=true;requestAnimationFrame(frame)}},{passive:true});
+    addEventListener('resize',frame);frame();
+  } else {
+    document.querySelectorAll('[data-count]').forEach(function(n){n.textContent=(+n.dataset.count).toLocaleString('en-US')});
+  }
+</script>
+</body>
+</html>

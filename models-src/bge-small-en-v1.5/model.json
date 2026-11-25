@@ -1,0 +1,1 @@
+{ "id": "bge-small-en-v1.5", "label": "bge-small-en-v1.5 (best quality)", "dim": 384, "pooling": "cls", "maxTokens": 512, "queryPrefix": "Represent this sentence for searching relevant passages: ", "file": "model_quantized.onnx", "license": "MIT", "version": 1 }

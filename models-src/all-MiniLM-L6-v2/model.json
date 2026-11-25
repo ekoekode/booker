@@ -1,0 +1,1 @@
+{ "id": "all-MiniLM-L6-v2", "label": "all-MiniLM-L6-v2 (balanced)", "dim": 384, "pooling": "mean", "maxTokens": 256, "queryPrefix": "", "file": "model_quantized.onnx", "license": "Apache-2.0", "version": 1 }
