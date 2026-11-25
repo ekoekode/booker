@@ -139,6 +139,15 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;back
 .private h3{font-family:var(--serif);font-size:26px;margin-bottom:6px}
 .private p{color:var(--mute)}
 
+.verse{position:relative;margin:48px auto 34px;max-width:760px;padding:44px 44px 30px;text-align:center;border-radius:22px;border:1px solid rgba(242,196,109,.35);background:linear-gradient(160deg,rgba(242,196,109,.09),rgba(139,108,255,.08) 60%,rgba(255,126,182,.05));box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 80px rgba(242,196,109,.12),inset 0 1px 0 rgba(255,255,255,.07);transform-style:preserve-3d}
+.verse::before{content:"";position:absolute;inset:-1px;border-radius:22px;padding:1px;background:linear-gradient(120deg,transparent 20%,rgba(242,196,109,.9),transparent 80%);background-size:250% 100%;animation:sheen 7s linear infinite;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.verse blockquote{font-family:var(--serif);font-size:clamp(22px,3vw,31px);line-height:1.5;color:#f6efe0;position:relative}
+.verse blockquote em{color:var(--gold);font-style:italic;display:inline-block;margin-top:6px}
+.verse .mark{position:absolute;left:-6px;top:-42px;font-size:110px;line-height:1;color:rgba(242,196,109,.28);font-family:var(--serif)}
+.verse figcaption{margin-top:26px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.verse figcaption .rule{width:46px;height:1px;background:var(--gold);opacity:.6}
+.verse .ver{padding:2px 8px;border:1px solid rgba(242,196,109,.45);border-radius:6px;letter-spacing:.1em;font-size:11px}
+@media (max-width:560px){.verse{padding:36px 22px 24px}}
 footer{border-top:1px solid var(--line);padding:46px 0;color:var(--faint);font-size:14px}
 footer .wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 
@@ -199,8 +208,14 @@ footer .wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;
     <div class="rv" style="text-align:center">
       <div class="tag">Why Booker exists</div>
       <h2>The time is short, and the work matters.</h2>
-      <p class="sub" style="margin:0 auto 22px;max-width:720px">I believe Jesus is coming back soon. Artificial intelligence is changing how people think and write, and the world is in upheaval. I read these things in the light of Scripture, and they seem to me to point to the season at hand.</p>
+      <p class="sub" style="margin:0 auto 22px;max-width:720px">Jesus is coming back soon. Artificial intelligence is changing how people think and write, and the world is in upheaval. I read these things in the light of Scripture, and they seem to me to point to the season at hand.</p>
       <p class="sub" style="margin:0 auto 22px;max-width:720px">So I want believers to have the best tools to study Scripture carefully and to write down what they find: sermons, devotionals, commentaries, teaching and books. Booker started as a way to write any book. It is now also a place to dig into the text itself, offline and on your own computer, with nothing to sign up for.</p>
+    </div>
+      <figure class="verse rv">
+        <blockquote><span class="mark" aria-hidden="true">“</span>He who testifies to these things says, “Yes, I am coming soon.” Amen. <em>Come, Lord Jesus!</em></blockquote>
+        <figcaption><span class="rule"></span>Revelation 22:20 <span class="ver">BSB</span></figcaption>
+      </figure>
+    <div class="rv" style="text-align:center">
       <p style="font-family:var(--serif);font-size:24px;font-style:italic;color:var(--violet2);margin-top:30px">Whatever you write, may it point people to Christ.</p>
     </div>
   </div>
@@ -335,7 +350,7 @@ footer .wrap{display:flex;gap:20px;flex-wrap:wrap;justify-content:space-between;
   </div>
 </section>
 
-<footer><div class="wrap"><span class="logo" style="font-size:18px"><i style="width:24px;height:24px;font-size:14px">B</i>Booker</span><span>Free and open source, MIT licensed. Built for Obsidian, and for the church.</span><span><a href="https://github.com/ekoekode/booker">GitHub</a> · <a href="#top">Back to top ↑</a></span></div></footer>
+<footer><div class="wrap"><span class="logo" style="font-size:18px"><i style="width:24px;height:24px;font-size:14px">B</i>Booker</span><span>Free and open source, MIT licensed. Built for Obsidian, and for the church.</span><span><a href="https://github.com/ekoekode/booker">GitHub</a> · <a href="#top">Back to top ↑</a></span></div><div class="wrap" style="margin-top:14px;font-size:12px"><span>Scripture quotation from the Berean Standard Bible (BSB), which is in the public domain.</span></div></footer>
 
 <script>
   var reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
