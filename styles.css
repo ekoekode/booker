@@ -1903,12 +1903,14 @@ body.is-mobile .bm-icon { width: 40px; }
 
 /* Hub cards: each has its own outline colour, taken from the theme's palette so it follows light/dark and the chosen theme */
 .booker-hub-card { --card-hue: var(--text-faint); border: 3px solid var(--card-hue); }
-.booker-hub-card > summary strong, .booker-hub-card > summary .booker-hub-ico { color: color-mix(in srgb, var(--card-hue) 70%, var(--text-normal)); }
+.booker-hub-card > summary .booker-hub-ico { color: var(--card-hue); }
+.booker-hub-subhead { margin: 14px 0 2px; padding-top: 10px; border-top: 1px solid var(--background-modifier-border); font-size: var(--font-ui-smaller); font-weight: var(--font-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.booker-hub-card-body > .booker-hub-subhead:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .booker-hub-card.is-write { --card-hue: var(--color-blue, var(--interactive-accent)); }
 .booker-hub-card.is-codex { --card-hue: var(--color-purple, var(--interactive-accent)); }
-.booker-hub-card.is-plan { --card-hue: var(--color-green, var(--interactive-accent)); }
+.booker-hub-card.is-plan, .booker-hub-card.is-plan-and-research { --card-hue: var(--color-green, var(--interactive-accent)); }
 .booker-hub-card.is-research { --card-hue: var(--color-cyan, var(--interactive-accent)); }
-.booker-hub-card.is-export { --card-hue: var(--color-orange, var(--interactive-accent)); }
+.booker-hub-card.is-export, .booker-hub-card.is-health-and-export { --card-hue: var(--color-orange, var(--interactive-accent)); }
 .booker-hub-card.is-project-health { --card-hue: var(--color-red, var(--interactive-accent)); }
 .booker-hub-card.is-books { --card-hue: var(--color-pink, var(--interactive-accent)); }
 

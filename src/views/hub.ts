@@ -240,11 +240,9 @@ export class HubView extends ItemView {
     drawFormatBanner(body, this.plugin, proj, () => void this.render());
     await this.tasksCard(body, proj, scenes, steps);
     this.writeCard(body, proj, scenes, getLabels(this.plugin.app, proj));
-    this.planCard(body, proj, scenes);
-    if (research) this.researchCard(body, proj, research);
+    this.planCard(body, proj, scenes, research);
     this.worldCard(body, proj);
-    this.healthCard(body, proj);
-    this.exportCard(body, proj, scenes);
+    this.healthExportCard(body, proj, scenes);
     this.foldable(body);
   }
 
@@ -254,8 +252,8 @@ export class HubView extends ItemView {
   }
 
   /** Project health, always near the top: what needs attention in the book, with a way to review it and to rebuild everything Booker keeps about the book. */
-  private healthCard(parent: HTMLElement, proj: Project) {
-    const body = this.card(parent, "Project health", "stethoscope", "Checking…", true);
+  private healthSection(body: HTMLElement, proj: Project) {
+    el(body, "div", "booker-hub-subhead", "Project health");
     const sub = body.parentElement?.querySelector("summary .booker-muted") as HTMLElement | null;
     const counts = el(body, "p", "booker-muted", "");
     const row = actionRow(body, "booker-actions-center");
@@ -279,9 +277,16 @@ export class HubView extends ItemView {
       .catch(() => counts.setText("Could not check the book."));
   }
 
-  /** Scripture, sources and checks for books that quote and cite: where to read, add and verify. */
-  private researchCard(parent: HTMLElement, proj: Project, r: { bibles: number; sources: number }) {
-    const body = this.card(parent, "Research", "library", `${r.sources} ${r.sources === 1 ? "source" : "sources"} · ${r.bibles} ${r.bibles === 1 ? "Bible" : "Bibles"}`);
+  /** Health and export in one card: what needs attention in the book, then the ways to send it out. */
+  private healthExportCard(parent: HTMLElement, proj: Project, scenes: HubScene[]) {
+    const body = this.card(parent, "Health and export", "download", "Checking…", true);
+    this.healthSection(body, proj);
+    this.exportSection(body, proj, scenes);
+  }
+
+  /** Scripture, sources and checks for books that quote and cite: where to read, add and verify. Sits inside the Plan card. */
+  private researchSection(body: HTMLElement, proj: Project, r: { bibles: number; sources: number }) {
+    el(body, "div", "booker-hub-subhead", `Research · ${r.sources} ${r.sources === 1 ? "source" : "sources"} · ${r.bibles} ${r.bibles === 1 ? "Bible" : "Bibles"}`);
     const run = (id: string) => () => void (this.plugin.app as any).commands.executeCommandById(`booker:${id}`);
     const row = actionRow(body, "booker-actions-center");
     actionBtn(row, "Bible reader", "book-open", () => void this.plugin.openBible(), { tip: "Read, search and see commentaries" });
@@ -1112,8 +1117,8 @@ export class HubView extends ItemView {
     menu.showAtMouseEvent(ev);
   }
 
-  private planCard(parent: HTMLElement, proj: Project, scenes: HubScene[]) {
-    const body = this.card(parent, "Plan", "layout-grid", "Progress and structure");
+  private planCard(parent: HTMLElement, proj: Project, scenes: HubScene[], research?: { bibles: number; sources: number } | null) {
+    const body = this.card(parent, research ? "Plan and research" : "Plan", "layout-grid", research ? "Progress, structure and research" : "Progress and structure");
     const counts = statusCounts(scenes, statusesFor(proj.profile));
     const total = scenes.length || 1;
     const bar = el(body, "div", "booker-statusbar is-wide is-clickable");
@@ -1153,6 +1158,7 @@ export class HubView extends ItemView {
     if (has("checks")) actionBtn(row, "Story checks", "list-checks", () => void this.openView(VIEW_CHECKS, proj), { tip: "Beats of your story structure, setup and payoff" });
     if (has("timeline")) actionBtn(row, "Timeline map", "git-commit-horizontal", () => void this.openView(VIEW_TIMELINE_MAP, proj), { tip: "Open the zoomable timeline map" });
     if (has("map")) actionBtn(row, "Map", "map", () => void this.openView(VIEW_WORLD_MAP, proj), { tip: "Open the map: scenes, places and notes with a location" });
+    if (research) this.researchSection(body, proj, research);
   }
 
   private worldCard(parent: HTMLElement, proj: Project) {
@@ -1319,8 +1325,8 @@ export class HubView extends ItemView {
     ).open();
   }
 
-  private exportCard(parent: HTMLElement, proj: Project, scenes: HubScene[]) {
-    const body = this.card(parent, "Export", "download", "Word, ePub and PDF");
+  private exportSection(body: HTMLElement, proj: Project, scenes: HubScene[]) {
+    el(body, "div", "booker-hub-subhead", "Export · Word, ePub and PDF");
     const status = el(body, "div", "booker-muted booker-hub-status");
     if (scenes.length === 0) return void status.setText(`Add a ${this.word(proj, 2)} to export your book.`);
     const box = el(body, "div", "booker-quick-box");

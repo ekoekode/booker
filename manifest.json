@@ -1,7 +1,7 @@
 {
   "id": "booker",
   "name": "Booker",
-  "version": "0.72.2",
+  "version": "0.72.3",
   "minAppVersion": "1.5.0",
   "description": "Write books of any kind in Obsidian: fiction, non-fiction, study guides and reference works, with scripture, notes, citations and Word/ePub/PDF export.",
   "author": "Booker",
