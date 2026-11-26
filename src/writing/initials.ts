@@ -9,6 +9,8 @@ export interface Opening {
   frame: OpeningFrame;
   /** how many lines of text the letter is as tall as */
   lines: 2 | 3 | 4;
+  /** also on the first paragraph of front and back matter (default: only chapters and sections) */
+  matter?: boolean;
 }
 
 /** On by default, as the illuminated artwork: it follows the Book styling switch in the editor, so turning that off gives plain paragraphs. */
@@ -39,6 +41,7 @@ export function resolveOpening(o?: Partial<Opening> | null): Opening {
   if (!(out.style in OPENING_STYLE_LABELS)) out.style = DEFAULT_OPENING.style;
   if (!(out.frame in OPENING_FRAME_LABELS)) out.frame = DEFAULT_OPENING.frame;
   if (![2, 3, 4].includes(out.lines)) out.lines = DEFAULT_OPENING.lines;
+  out.matter = out.matter === true;
   return out;
 }
 

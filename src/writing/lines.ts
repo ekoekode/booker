@@ -9,6 +9,8 @@ export interface LineInfo {
   dialogue: boolean;
   /** first prose line after the start, a heading or a scene break */
   first: boolean;
+  /** a list item or a quote: not typeset as prose, but it keeps the book's font */
+  block?: boolean;
 }
 
 const SCENE_BREAK = /^\s*([*\-_~#]\s*){3,}$/;
@@ -17,6 +19,8 @@ const DIALOGUE = /^[\s  ]*["“”«„'‘—–]/;
 const NOT_PROSE = [/^\s*>/, /^\s*([-*+]|\d+[.)])\s/, /^\s*\|/, /^\s*<[^>]*>\s*$/, /^\s*!?\[\[/];
 
 const SKIP: LineInfo = { kind: "skip", dialogue: false, first: false };
+const BLOCK: LineInfo = { kind: "skip", dialogue: false, first: false, block: true };
+const LIST_OR_QUOTE = [/^\s*>/, /^\s*([-*+]|\d+[.)])\s/];
 const BLANK: LineInfo = { kind: "blank", dialogue: false, first: false };
 
 const isBreak = (s: string) => HEADING.test(s) || SCENE_BREAK.test(s);
@@ -54,7 +58,7 @@ export function classifyLines(lines: string[]): LineInfo[] {
       continue;
     }
     if (NOT_PROSE.some((r) => r.test(t))) {
-      out.push(SKIP);
+      out.push(LIST_OR_QUOTE.some((r) => r.test(t)) ? BLOCK : SKIP);
       continue;
     }
     out.push({ kind: "text", dialogue: DIALOGUE.test(t), first });

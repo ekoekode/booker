@@ -32,7 +32,7 @@ describe("chapter opening", () => {
   });
 
   it("is the illuminated artwork by default and falls back to that for bad values", () => {
-    expect(resolveOpening({ style: "nonsense" as never, frame: "x" as never, lines: 9 as never })).toEqual({ style: "art", frame: "none", lines: 2 });
+    expect(resolveOpening({ style: "nonsense" as never, frame: "x" as never, lines: 9 as never })).toEqual({ style: "art", frame: "none", lines: 2, matter: false });
   });
 
   it("the illuminated alphabet has all 26 letters", () => {

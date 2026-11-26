@@ -18,7 +18,13 @@ describe("project writing format", () => {
     expect(f.writing.autoIndent).toBe(false);
     expect(f.writing.indent).toBe(0.5);
     expect(f.writing.bar).toBe(DEFAULT_FORMAT.bar);
-    expect(f.opening).toEqual({ style: "cinzel", frame: "double", lines: 4 });
+    expect(f.opening).toEqual({ style: "cinzel", frame: "double", lines: 4, matter: false });
+  });
+
+  it("can show the large letter on front and back matter too", () => {
+    const f = effectiveFormat(def, readProjectFormat({ writingFormat: { openingMatter: true } }));
+    expect(f.opening.matter).toBe(true);
+    expect(def.opening.matter).toBe(false);
   });
 
   it("ignores odd values and round-trips a whole bundle", () => {

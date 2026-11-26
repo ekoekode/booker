@@ -1,4 +1,5 @@
-import { ItemView, Menu, Notice, setIcon, WorkspaceLeaf } from "obsidian";
+import { captureScroll } from "../ui";
+import { ItemView, Menu, Notice, debounce, setIcon, WorkspaceLeaf } from "obsidian";
 import { CopySettingsModal, currentDefault } from "./copySettingsModal";
 import type { CopySettings } from "../reader/copySettings";
 import { quickScripture } from "../scripture/quick";
@@ -144,8 +145,10 @@ export class BibleRefsView extends ItemView {
     const e = this.embedded?.place();
     // a Bible shown here turns to the chapter and verse of the one being read
     if (this.source.startsWith("b:") && e?.kind === "bible" && this.embedded?.moveTo?.({ kind: "bible", module: e.module, book: s.book, chapter: s.chapter, verse: s.verse, ...(s.verseTo && { verseTo: s.verseTo }) })) return void this.drawNav();
-    void this.render();
+    this.followRender();
   }
+
+  private followRender = debounce(() => void this.render(), 150, true);
 
   /** The choices for what this window shows: every Bible, commentary, library and document. */
   private async drawSources() {
@@ -289,8 +292,31 @@ export class BibleRefsView extends ItemView {
     this.pinBtn.toggleClass("is-active", this.pinned);
   }
 
-  /** Commentaries for the selected verse: each module's notes, and a search of the documents for the reference. */
+  /** The window's own body, which shows the finished page. A new page is built beside it and swapped in, so nothing flashes empty while it loads. */
+  private shown: HTMLElement | null = null;
+
   private async render() {
+    // a Bible, library or word study shown here needs its real size while it is made, so those are drawn in place
+    if (/^(?:[bwd]:|ws$)/.test(this.source)) return this.renderContent();
+    const real = (this.shown ??= this.body);
+    const holder = real.ownerDocument.createElement("div");
+    holder.className = real.className;
+    this.body = holder;
+    const keep = captureScroll(real);
+    try {
+      await this.renderContent();
+    } finally {
+      // only the newest drawing is shown; one that was replaced while it loaded is dropped
+      if (this.body === holder) {
+        this.body = real;
+        real.replaceChildren(...Array.from(holder.childNodes));
+        keep();
+      }
+    }
+  }
+
+  /** Commentaries for the selected verse: each module's notes, and a search of the documents for the reference. */
+  private async renderContent() {
     const my = ++this.token;
     const s = this.sel;
     this.quoting?.reset();

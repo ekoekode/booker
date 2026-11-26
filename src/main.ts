@@ -983,17 +983,49 @@ export default class BookerPlugin extends Plugin {
     this.applyWriting();
   }
 
+  /** Book styling is remembered for the whole book: chapters, sections and front and back matter share one setting, kept in the project note. */
   async toggleBookStyling(path: string) {
-    await this.patchFormatFor(path, { writing: { autoIndent: !this.effectiveFormat(path).writing.autoIndent } });
+    const proj = projectOfPath(this.app, path);
+    const next = !this.effectiveFormat(path).writing.autoIndent;
+    if (!proj) return this.patchFormatFor(path, { writing: { autoIndent: next } });
+    await this.setProjectFormatFm(proj, { ...(this.projectFormat(proj) ?? {}), autoIndent: next });
+  }
+
+  /** Write a project's own format as stored (it may hold only some of the fields; the rest follow the default). */
+  async setProjectFormatFm(proj: Project, fmv: FormatFm) {
+    const seen = new Promise<void>((done) => {
+      const ref = this.app.metadataCache.on("changed", (f) => {
+        if (f === proj.file) {
+          this.app.metadataCache.offref(ref);
+          done();
+        }
+      });
+      window.setTimeout(() => (this.app.metadataCache.offref(ref), done()), 1500);
+    });
+    await this.app.fileManager.processFrontMatter(proj.file, (fm) => {
+      fm[FORMAT_FM_KEY] = fmv;
+    });
+    await seen;
+    this.applyWriting();
+  }
+
+  /** Whether a note is one that takes the large first letter: a chapter or section, or front and back matter when allowed. */
+  private openingFits(path: string | undefined, o: { matter?: boolean }): boolean {
+    const proj = path ? projectOfPath(this.app, path) : null;
+    if (!proj || !path) return false;
+    if (path.startsWith(`${proj.layout.scenes}/`)) return true;
+    return !!o.matter && path.startsWith(`${proj.layout.matter}/`);
   }
 
   /** The classes and variables each editor gets for its own project's format. */
   private formatAttributes(): Extension {
     return EditorView.editorAttributes.of((view) => {
-      const f = this.effectiveFormat(view.state.field(editorInfoField, false)?.file?.path);
+      const path = view.state.field(editorInfoField, false)?.file?.path;
+      const f = this.effectiveFormat(path);
       const w = formatAttrs(f.writing);
-      // Book styling off gives plain paragraphs: no automatic indent and no large first letter
-      const o = openingAttrs(f.writing.autoIndent ? f.opening : { style: "off" });
+      // Book styling off gives plain paragraphs: no automatic indent and no large first letter. The letter belongs to chapters and sections
+      // (and to front and back matter only when that is switched on), not to notes, the codex or other pages.
+      const o = openingAttrs(f.writing.autoIndent && this.openingFits(path, f.opening) ? f.opening : { style: "off" });
       return { class: `${w.class} ${o.class}`.trim(), style: w.style + o.style };
     });
   }

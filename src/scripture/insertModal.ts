@@ -60,6 +60,7 @@ export class InsertScriptureModal extends Modal {
     this.initial = initial;
   }
   private initial: string;
+  private pv = 0;
 
   async onOpen() {
     const { contentEl } = this;
@@ -226,11 +227,11 @@ export class InsertScriptureModal extends Modal {
   private update() {
     this.hits.empty();
     this.parts.empty();
-    this.preview.empty();
-    if (!this.mod) return;
+    if (!this.mod) return void this.preview.empty();
     const text = this.input.value.trim();
     this.passages = null;
     if (!text) {
+      this.preview.empty();
       this.status.setText("Type a reference or some words.");
       return;
     }
@@ -239,15 +240,23 @@ export class InsertScriptureModal extends Modal {
       this.passages = this.withParts(refs);
       const out = formatInsert(this.mod, this.passages, this.style);
       if (!out) {
+        this.preview.empty();
         this.status.setText(`${this.mod.name} has no ${formatPassage(refs[0], BOOK_BY_OSIS.get(refs[0].book)!)}.`);
         return;
       }
       this.status.setText(`${this.mod.name}`);
       this.partChips(refs);
-      void MarkdownRenderer.render(this.app, out, this.preview, "", this.render);
+      // the new preview is made beside the old one and swapped in, so typing does not flash it empty
+      const tmp = document.createElement("div");
+      const mine = ++this.pv;
+      void MarkdownRenderer.render(this.app, out, tmp, "", this.render).then(() => {
+        if (mine === this.pv) this.preview.replaceChildren(...Array.from(tmp.childNodes));
+      });
       return;
     }
     // not a reference: search the text
+    this.pv++;
+    this.preview.empty();
     const words = text.split(/\s+/).filter((w) => w.length > 1);
     const hits = this.mod.search(words, 40);
     this.status.setText(hits.length ? `${hits.length}${hits.length === 40 ? "+" : ""} verses contain ${words.join(" and ")}. Press one to use it.` : "No verses found.");

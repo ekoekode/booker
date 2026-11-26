@@ -62,6 +62,11 @@ export function drawFormatControls(
       .addDropdown((d) => d.addOptions(OPENING_FRAME_LABELS).setValue(o().frame).onChange((v) => void setO({ frame: v as Opening["frame"] })));
   if (o().style !== "off")
     new Setting(opening)
+      .setName("Also on front and back matter")
+      .setDesc("Off shows the large letter on chapters and sections only. On also puts it on the first paragraph of the book's front and back matter.")
+      .addToggle((t) => t.setValue(o().matter === true).onChange((v) => void setO({ matter: v })));
+  if (o().style !== "off")
+    new Setting(opening)
       .setName("Height")
       .setDesc("How many lines of text the letter is as tall as.")
       .addDropdown((d) => d.addOptions({ "2": "2 lines", "3": "3 lines", "4": "4 lines" }).setValue(String(o().lines)).onChange((v) => void setO({ lines: Number(v) as Opening["lines"] })));

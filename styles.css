@@ -1523,7 +1523,7 @@ select.booker-status.status-preached { --nv-s: var(--nv-final); }
 .booker-refs-nav { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
 .booker-refs-navlabel { flex: 1; text-align: center; font-size: var(--font-ui-small); }
 .booker-refs-embed { position: relative; }
-.booker-fmt-on.booker-book-font .cm-content .cm-line.nv-text, .booker-fmt-on.booker-book-font .cm-content .cm-line.nv-text * { font-family: "Booker Literata", Georgia, "Times New Roman", serif; }
+.booker-fmt-on.booker-book-font .cm-content .cm-line.nv-text, .booker-fmt-on.booker-book-font .cm-content .cm-line.nv-text *, .booker-fmt-on.booker-book-font .cm-content .cm-line.nv-block, .booker-fmt-on.booker-book-font .cm-content .cm-line.nv-block * { font-family: "Booker Literata", Georgia, "Times New Roman", serif; }
 .booker-refs-where { background: none; border: 0; box-shadow: none; cursor: pointer; }
 .booker-refs-picker { border: 1px solid var(--background-modifier-border); border-radius: 6px; padding: 6px; margin-bottom: 6px; max-height: 50vh; overflow: auto; }
 /* contents drawer: the books scroll, the chapters stay at the bottom */
@@ -1902,20 +1902,16 @@ body.is-mobile .bm-icon { width: 40px; }
 .bm-group:hover { transform: scale(1.12); background: #7b7b80; }
 
 /* Hub cards: each has its own outline colour, taken from the theme's palette so it follows light/dark and the chosen theme */
-.booker-hub-card { --card-hue: var(--text-faint); border: 3px solid var(--card-hue); }
-.booker-hub-card > summary .booker-hub-ico { color: var(--card-hue); }
-.booker-hub-subhead { margin: 14px 0 2px; padding-top: 10px; border-top: 1px solid var(--background-modifier-border); font-size: var(--font-ui-smaller); font-weight: var(--font-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
-.booker-hub-card-body > .booker-hub-subhead:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.booker-hub-card.is-write { --card-hue: var(--color-blue, var(--interactive-accent)); }
-.booker-hub-card.is-codex { --card-hue: var(--color-purple, var(--interactive-accent)); }
-.booker-hub-card.is-plan, .booker-hub-card.is-plan-and-research { --card-hue: var(--color-green, var(--interactive-accent)); }
-.booker-hub-card.is-research { --card-hue: var(--color-cyan, var(--interactive-accent)); }
-.booker-hub-card.is-export, .booker-hub-card.is-health-and-export { --card-hue: var(--color-orange, var(--interactive-accent)); }
-.booker-hub-card.is-project-health { --card-hue: var(--color-red, var(--interactive-accent)); }
-.booker-hub-card.is-books { --card-hue: var(--color-pink, var(--interactive-accent)); }
+.booker-hub-card { border: 3px solid var(--background-modifier-border-hover); }
+
+/* A card with two jobs shows each in its own tinted block */
+.booker-hub-card-body > .booker-hub-section { background: var(--background-primary); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.booker-hub-card-body > .booker-hub-section + .booker-hub-section { background: var(--background-secondary-alt); }
+.booker-hub-subhead { font-size: var(--font-ui-smaller); font-weight: var(--font-semibold); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.booker-actions.booker-actions-start { justify-content: flex-start; }
 
 /* Write and Codex can be long: the list stops at a height and scrolls inside, with its filter above it */
-.booker-hub-tree, .booker-world-list { max-height: min(60vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+.booker-hub-tree, .booker-world-list { max-height: min(60vh, 560px); overflow-y: auto; }
 .booker-hub-tree > *, .booker-world-list > * { flex-shrink: 0; }
 .booker-hub.is-sidebar .booker-hub-tree, .booker-hub.is-sidebar .booker-world-list { max-height: min(50vh, 420px); }
 .booker-hub-filter { display: flex; align-items: center; gap: 4px; }

@@ -34,6 +34,7 @@ const mark = {
   first: Decoration.line({ class: "nv-text nv-first" }),
   dialogue: Decoration.line({ class: "nv-text nv-dialogue" }),
   firstDialogue: Decoration.line({ class: "nv-text nv-first nv-dialogue" }),
+  block: Decoration.line({ class: "nv-block" }),
 };
 
 const firstWithLetter = new Map<string, Decoration>();
@@ -54,7 +55,10 @@ function build(view: EditorView): DecorationSet {
   const lines: string[] = [];
   for (let i = 1; i <= doc.lines; i++) lines.push(doc.line(i).text);
   classifyLines(lines).forEach((info, i) => {
-    if (info.kind !== "text") return;
+    if (info.kind !== "text") {
+      if (info.block) b.add(doc.line(i + 1).from, doc.line(i + 1).from, mark.block);
+      return;
+    }
     const line = doc.line(i + 1);
     const letter = info.first ? /^[\s\u2003]*([A-Za-z])/.exec(line.text)?.[1]?.toUpperCase() : undefined;
     b.add(line.from, line.from, letter ? openingMark(letter, info.dialogue) : info.first ? (info.dialogue ? mark.firstDialogue : mark.first) : info.dialogue ? mark.dialogue : mark.text);

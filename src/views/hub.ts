@@ -252,11 +252,12 @@ export class HubView extends ItemView {
   }
 
   /** Project health, always near the top: what needs attention in the book, with a way to review it and to rebuild everything Booker keeps about the book. */
-  private healthSection(body: HTMLElement, proj: Project) {
+  private healthSection(card: HTMLElement, proj: Project) {
+    const body = el(card, "div", "booker-hub-section");
     el(body, "div", "booker-hub-subhead", "Project health");
-    const sub = body.parentElement?.querySelector("summary .booker-muted") as HTMLElement | null;
+    const sub = card.parentElement?.querySelector("summary .booker-muted") as HTMLElement | null;
     const counts = el(body, "p", "booker-muted", "");
-    const row = actionRow(body, "booker-actions-center");
+    const row = actionRow(body, "booker-actions-start");
     actionBtn(row, "Review", "list-checks", () => void this.plugin.openView("booker-health", { project: proj.file.path }), { tip: "See every warning and fix or dismiss it" });
     const rebuild = actionBtn(row, "Rebuild", "refresh-cw", () => {
       rebuild.addClass("is-busy");
@@ -267,12 +268,12 @@ export class HubView extends ItemView {
     }, { tip: "Rebuild word counts, links, structure, numbering and the names listed on each scene from the files" });
     void scanProjects(this.plugin, [proj])
       .then(({ report, dismissed }) => {
-        if (!body.isConnected) return;
+        if (!card.isConnected) return;
         const st = healthStats(report.findings);
         sub?.setText(st.total ? `${st.total} to look at` : "All clear");
         counts.setText(`${describeStats(st)}${dismissed.length ? ` · ${dismissed.length} dismissed` : ""}`);
-        body.parentElement?.toggleClass("has-warnings", st.total > 0);
-        if (st.total) body.parentElement?.setAttr("open", "");
+        card.parentElement?.toggleClass("has-warnings", st.total > 0);
+        if (st.total) card.parentElement?.setAttr("open", "");
       })
       .catch(() => counts.setText("Could not check the book."));
   }
@@ -285,10 +286,11 @@ export class HubView extends ItemView {
   }
 
   /** Scripture, sources and checks for books that quote and cite: where to read, add and verify. Sits inside the Plan card. */
-  private researchSection(body: HTMLElement, proj: Project, r: { bibles: number; sources: number }) {
+  private researchSection(card: HTMLElement, proj: Project, r: { bibles: number; sources: number }) {
+    const body = el(card, "div", "booker-hub-section");
     el(body, "div", "booker-hub-subhead", `Research · ${r.sources} ${r.sources === 1 ? "source" : "sources"} · ${r.bibles} ${r.bibles === 1 ? "Bible" : "Bibles"}`);
     const run = (id: string) => () => void (this.plugin.app as any).commands.executeCommandById(`booker:${id}`);
-    const row = actionRow(body, "booker-actions-center");
+    const row = actionRow(body, "booker-actions-start");
     actionBtn(row, "Bible reader", "book-open", () => void this.plugin.openBible(), { tip: "Read, search and see commentaries" });
     actionBtn(row, "Library", "library-big", () => void this.plugin.openLibrary(), { tip: "Browse and read every library, archive, book and document" });
     actionBtn(row, "Sources", "library", () => void this.plugin.openSide(), { tip: "Your documents and reference libraries" });
@@ -1118,7 +1120,9 @@ export class HubView extends ItemView {
   }
 
   private planCard(parent: HTMLElement, proj: Project, scenes: HubScene[], research?: { bibles: number; sources: number } | null) {
-    const body = this.card(parent, research ? "Plan and research" : "Plan", "layout-grid", research ? "Progress, structure and research" : "Progress and structure");
+    const card = this.card(parent, research ? "Plan and research" : "Plan", "layout-grid", research ? "Progress, structure and research" : "Progress and structure");
+    const body = research ? el(card, "div", "booker-hub-section") : card;
+    if (research) el(body, "div", "booker-hub-subhead", "Plan");
     const counts = statusCounts(scenes, statusesFor(proj.profile));
     const total = scenes.length || 1;
     const bar = el(body, "div", "booker-statusbar is-wide is-clickable");
@@ -1151,14 +1155,14 @@ export class HubView extends ItemView {
       el(k, "span", `booker-dot status-${status}`);
       k.appendText(` ${status} ${n}`);
     }
-    const row = actionRow(body, "booker-actions-center");
+    const row = actionRow(body, "booker-actions-start");
     actionBtn(row, "Board", "layout-grid", () => void this.openView(VIEW_BOARD, proj), { tip: "Open the board" });
     const has = (v: ViewId) => hasView(this.profileOf(proj), v);
     if (has("plotlines")) actionBtn(row, "Plotlines", "train-front", () => void this.openView(VIEW_PLOTLINES, proj), { tip: "Open the plotlines map" });
     if (has("checks")) actionBtn(row, "Story checks", "list-checks", () => void this.openView(VIEW_CHECKS, proj), { tip: "Beats of your story structure, setup and payoff" });
     if (has("timeline")) actionBtn(row, "Timeline map", "git-commit-horizontal", () => void this.openView(VIEW_TIMELINE_MAP, proj), { tip: "Open the zoomable timeline map" });
     if (has("map")) actionBtn(row, "Map", "map", () => void this.openView(VIEW_WORLD_MAP, proj), { tip: "Open the map: scenes, places and notes with a location" });
-    if (research) this.researchSection(body, proj, research);
+    if (research) this.researchSection(card, proj, research);
   }
 
   private worldCard(parent: HTMLElement, proj: Project) {
@@ -1325,7 +1329,8 @@ export class HubView extends ItemView {
     ).open();
   }
 
-  private exportSection(body: HTMLElement, proj: Project, scenes: HubScene[]) {
+  private exportSection(card: HTMLElement, proj: Project, scenes: HubScene[]) {
+    const body = el(card, "div", "booker-hub-section");
     el(body, "div", "booker-hub-subhead", "Export · Word, ePub and PDF");
     const status = el(body, "div", "booker-muted booker-hub-status");
     if (scenes.length === 0) return void status.setText(`Add a ${this.word(proj, 2)} to export your book.`);
