@@ -1658,7 +1658,7 @@ select.booker-status.status-preached { --nv-s: var(--nv-final); }
 .booker-set-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--background-modifier-border); margin-bottom: 12px; }
 .booker-set-tab { background: none; border: none; box-shadow: none; border-radius: var(--radius-m) var(--radius-m) 0 0; padding: 6px 14px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; }
 .booker-set-tab.is-active { color: var(--text-normal); font-weight: var(--font-semibold); border-bottom-color: var(--interactive-accent); }
-.booker-set-pluginpage { max-height: 65vh; overflow-y: auto; }
+.booker-set-page { max-height: 65vh; overflow-y: auto; }
 
 .booker-modal .booker-set-pluginpage .setting-item { align-items: center; padding: 10px 2px; }
 .booker-modal .booker-set-pluginpage .setting-item-info { max-width: 62%; }

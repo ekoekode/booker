@@ -33,12 +33,12 @@ export class ProjectSettingsModal extends Modal {
   onOpen() {
     // drawn again after every change: keep the window and the plugin-settings page where they were scrolled
     const restore = captureScroll(this.contentEl);
-    const before = this.contentEl.querySelector<HTMLElement>(".booker-set-pluginpage")?.scrollTop ?? 0;
+    const before = this.contentEl.querySelector<HTMLElement>(".booker-set-page")?.scrollTop ?? 0;
     this.build();
     restore();
     if (before) {
       const put = () => {
-        const page = this.contentEl.querySelector<HTMLElement>(".booker-set-pluginpage");
+        const page = this.contentEl.querySelector<HTMLElement>(".booker-set-page");
         if (page) page.scrollTop = before;
       };
       put();
@@ -67,12 +67,13 @@ export class ProjectSettingsModal extends Modal {
       }
       if (this.tab === "plugin") {
         // the same settings the Obsidian settings page shows: one stored copy, so a change here is a change there
-        new BookerSettingTab(this.app, plugin).renderInto(root.createDiv({ cls: "booker-set-pluginpage" }));
+        new BookerSettingTab(this.app, plugin).renderInto(root.createDiv({ cls: "booker-set-page booker-set-pluginpage" }));
         this.footer(root);
         return;
       }
     }
-    this.renderProject(root.createDiv(), proj);
+    // both tabs scroll inside their own box, so the buttons at the bottom stay in view
+    this.renderProject(root.createDiv({ cls: "booker-set-page" }), proj);
     this.footer(root);
   }
 
