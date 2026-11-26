@@ -152,6 +152,7 @@ export class ResourcesPanel {
 
   private draw() {
     const box = this.list;
+    const keep = box.scrollTop;
     box.empty();
     this.bars.clear();
     const want = this.wanted();
@@ -171,6 +172,8 @@ export class ResourcesPanel {
       }
       for (const r of rows) this.row(box, r);
     }
+    box.scrollTop = keep;
+    window.requestAnimationFrame(() => (box.scrollTop = keep));
   }
 
   private row(box: HTMLElement, r: Resource) {

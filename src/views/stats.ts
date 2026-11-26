@@ -1,3 +1,4 @@
+import { captureScroll } from "../ui";
 import { ItemView, Menu, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import type BookerPlugin from "../main";
 import { analyse, combine, topFromFreq, type SceneProse } from "../project/prose";
@@ -99,6 +100,12 @@ export class StatsView extends ItemView {
   }
 
   private render() {
+    const restore = captureScroll(this.contentEl);
+    this.drawAll();
+    restore();
+  }
+
+  private drawAll() {
     const root = this.contentEl;
     root.empty();
     this.run++;

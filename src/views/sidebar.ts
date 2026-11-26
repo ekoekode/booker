@@ -1,3 +1,4 @@
+import { captureScroll } from "../ui";
 import { ItemView, WorkspaceLeaf, debounce, setIcon } from "obsidian";
 import { drawCard, type Card } from "./cards";
 import type BookerPlugin from "../main";
@@ -94,6 +95,12 @@ export class SidebarView extends ItemView {
   };
 
   private render() {
+    const restore = captureScroll(this.contentEl);
+    this.drawAll();
+    restore();
+  }
+
+  private drawAll() {
     const root = this.contentEl;
     root.empty();
     this.cards = {};

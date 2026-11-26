@@ -1,4 +1,4 @@
-import { Extension, Prec, RangeSetBuilder, StateEffect } from "@codemirror/state";
+import { EditorState, Extension, Prec, RangeSetBuilder, StateEffect } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, keymap } from "@codemirror/view";
 import { classifyLines, EM_SPACE } from "./lines";
 import { FONTS } from "../export/fonts";
@@ -63,15 +63,15 @@ function build(view: EditorView): DecorationSet {
 }
 
 /** Typeset the native editor with line classes only, so other plugins that share it (live cursors, for example) keep working. */
-export function writingExtension(get: () => WritingFormat): Extension {
+export function writingExtension(get: (state: EditorState) => WritingFormat): Extension {
   const plugin = ViewPlugin.fromClass(
     class {
       decorations: DecorationSet;
       constructor(view: EditorView) {
-        this.decorations = get().on ? build(view) : Decoration.none;
+        this.decorations = get(view.state).on ? build(view) : Decoration.none;
       }
       update(u: ViewUpdate) {
-        if (u.docChanged || u.transactions.some((t) => t.effects.some((e) => e.is(refreshFormat)))) this.decorations = get().on ? build(u.view) : Decoration.none;
+        if (u.docChanged || u.transactions.some((t) => t.effects.some((e) => e.is(refreshFormat)))) this.decorations = get(u.view.state).on ? build(u.view) : Decoration.none;
       }
     },
     { decorations: (v) => v.decorations }
@@ -83,7 +83,7 @@ export function writingExtension(get: () => WritingFormat): Extension {
       {
         key: "Tab",
         run: (view) => {
-          const f = get();
+          const f = get(view.state);
           const sel = view.state.selection.main;
           if (!f.on || !f.tabIndent || !sel.empty) return false;
           const line = view.state.doc.lineAt(sel.head);
@@ -96,7 +96,7 @@ export function writingExtension(get: () => WritingFormat): Extension {
       {
         key: "Shift-Tab",
         run: (view) => {
-          const f = get();
+          const f = get(view.state);
           const sel = view.state.selection.main;
           if (!f.on || !f.tabIndent) return false;
           const line = view.state.doc.lineAt(sel.head);
@@ -109,7 +109,7 @@ export function writingExtension(get: () => WritingFormat): Extension {
         // a new paragraph starts clean: the typeset indent already shows, so the manual one is not carried over
         key: "Enter",
         run: (view) => {
-          const f = get();
+          const f = get(view.state);
           const sel = view.state.selection.main;
           if (!f.on || !f.tabIndent) return false;
           const line = view.state.doc.lineAt(sel.head);
@@ -137,14 +137,9 @@ export function loadBookFont() {
   }
 }
 
-export function applyFormatVars(f: WritingFormat, el: HTMLElement = document.body) {
-  el.style.setProperty("--nv-indent", `${f.indent}em`);
-  el.style.setProperty("--nv-gap", `${f.paragraphGap}em`);
-  el.style.setProperty("--nv-dlg-gap", `${f.dialogueGap}em`);
+/** The classes and variables that typeset one editor, to be put on that editor (so each project can have its own format). */
+export function formatAttrs(f: WritingFormat): { class: string; style: string } {
   if (f.bookFont) loadBookFont();
-  el.toggleClass("booker-fmt-on", f.on);
-  el.toggleClass("booker-book-font", f.bookFont);
-  el.toggleClass("booker-fmtbar-off", !f.bar);
-  el.toggleClass("booker-fmt-indent-first", f.indentFirst);
-  el.toggleClass("booker-fmt-no-indent", !f.autoIndent);
+  const cls = [f.on && "booker-fmt-on", f.bookFont && "booker-book-font", !f.bar && "booker-fmtbar-off", f.indentFirst && "booker-fmt-indent-first", !f.autoIndent && "booker-fmt-no-indent"].filter(Boolean).join(" ");
+  return { class: cls, style: `--nv-indent:${f.indent}em;--nv-gap:${f.paragraphGap}em;--nv-dlg-gap:${f.dialogueGap}em;` };
 }

@@ -1937,10 +1937,10 @@ body.is-mobile .bm-icon { width: 40px; }
 .booker-wizard-resources .booker-res-list { max-height: 42vh; }
 
 /* Chapter opening: the first letter of a chapter's first paragraph, as tall as N lines, with the text wrapping beside and then underneath it */
-body.booker-open.booker-fmt-on .cm-content .cm-line.nv-first { --ini-ink: var(--text-normal); --ini-paper: var(--background-primary); }
-body.booker-open.booker-fmt-on .cm-content .cm-line.nv-first::first-letter { float: left; line-height: 1; text-indent: 0; }
-body.booker-open-fell.booker-fmt-on .cm-line.nv-first::first-letter, body.booker-open-jacquard.booker-fmt-on .cm-line.nv-first::first-letter, body.booker-open-cinzel.booker-fmt-on .cm-line.nv-first::first-letter { font-family: var(--ini-font), serif; font-weight: normal; font-size: calc(var(--ini-lines) * 1.5em * 0.82); color: var(--ini-ink); margin: 0.02em 0.1em 0 0; }
-body.booker-frame-block.booker-fmt-on .cm-line.nv-first::first-letter { background: var(--ini-ink); color: var(--ini-paper); padding: 0.04em 0.12em 0; margin-right: 0.12em; }
-body.booker-frame-single.booker-fmt-on .cm-line.nv-first::first-letter { border: 0.05em solid var(--ini-ink); padding: 0.03em 0.1em 0; margin-right: 0.12em; }
-body.booker-frame-double.booker-fmt-on .cm-line.nv-first::first-letter { border: 0.1em double var(--ini-ink); padding: 0.03em 0.1em 0; margin-right: 0.12em; font-size: calc(var(--ini-lines) * 1.5em * 0.72); }
-body.booker-open-art.booker-fmt-on .cm-line.nv-first::first-letter { font-family: monospace; font-size: calc(var(--ini-lines) * 1.5em); color: transparent; background: var(--ini-img) center / 100% 100% no-repeat; padding: 0 0.165em; margin: 0 0.1em 0 0; }
+.booker-open.booker-fmt-on .cm-content .cm-line.nv-first { --ini-ink: var(--text-normal); --ini-paper: var(--background-primary); }
+.booker-open.booker-fmt-on .cm-content .cm-line.nv-first::first-letter { float: left; line-height: 1; text-indent: 0; }
+.booker-open-fell.booker-fmt-on .cm-line.nv-first::first-letter, .booker-open-jacquard.booker-fmt-on .cm-line.nv-first::first-letter, .booker-open-cinzel.booker-fmt-on .cm-line.nv-first::first-letter { font-family: var(--ini-font), serif; font-weight: normal; font-size: calc(var(--ini-lines) * 1.5em * 0.82); color: var(--ini-ink); margin: 0.02em 0.1em 0 0; }
+.booker-open.booker-frame-block.booker-fmt-on .cm-line.nv-first::first-letter { background: var(--ini-ink); color: var(--ini-paper); padding: 0.04em 0.12em 0; margin-right: 0.12em; }
+.booker-open.booker-frame-single.booker-fmt-on .cm-line.nv-first::first-letter { border: 0.05em solid var(--ini-ink); padding: 0.03em 0.1em 0; margin-right: 0.12em; }
+.booker-open.booker-frame-double.booker-fmt-on .cm-line.nv-first::first-letter { border: 0.1em double var(--ini-ink); padding: 0.03em 0.1em 0; margin-right: 0.12em; font-size: calc(var(--ini-lines) * 1.5em * 0.72); }
+.booker-open-art.booker-fmt-on .cm-line.nv-first::first-letter { font-family: monospace; font-size: calc(var(--ini-lines) * 1.5em); color: transparent; background: var(--ini-img) center / 100% 100% no-repeat; padding: 0 0.165em; margin: 0 0.1em 0 0; }

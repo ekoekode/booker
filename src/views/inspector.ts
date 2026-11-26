@@ -1,3 +1,4 @@
+import { captureScroll } from "../ui";
 import { formatTime, parseStoryDate, timelineAnchor } from "../dates";
 import { Notice, TFile, WorkspaceLeaf, debounce } from "obsidian";
 import type BookerPlugin from "../main";
@@ -70,6 +71,15 @@ export class InspectorPanel {
   }
 
   async render() {
+    const restore = captureScroll(this.root);
+    try {
+      await this.renderNow();
+    } finally {
+      restore();
+    }
+  }
+
+  private async renderNow() {
     const my = ++this.token;
     const root = this.root;
     try {

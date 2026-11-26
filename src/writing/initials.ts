@@ -12,7 +12,7 @@ export interface Opening {
 }
 
 /** On by default, as the illuminated artwork: it follows the Book styling switch in the editor, so turning that off gives plain paragraphs. */
-export const DEFAULT_OPENING: Opening = { style: "art", frame: "none", lines: 3 };
+export const DEFAULT_OPENING: Opening = { style: "art", frame: "none", lines: 2 };
 
 export const OPENING_STYLE_LABELS: Record<OpeningStyle, string> = {
   off: "None",
@@ -38,7 +38,7 @@ export function resolveOpening(o?: Partial<Opening> | null): Opening {
   const out = { ...DEFAULT_OPENING, ...(o ?? {}) };
   if (!(out.style in OPENING_STYLE_LABELS)) out.style = DEFAULT_OPENING.style;
   if (!(out.frame in OPENING_FRAME_LABELS)) out.frame = DEFAULT_OPENING.frame;
-  if (![2, 3, 4].includes(out.lines)) out.lines = 3;
+  if (![2, 3, 4].includes(out.lines)) out.lines = DEFAULT_OPENING.lines;
   return out;
 }
 

@@ -50,6 +50,8 @@ export class ExportModal extends Modal {
     this.opts = defaultOptions(plugin);
     const all = exportableProjects(plugin);
     this.proj = proj ?? all[0] ?? null;
+    // the chapter opening follows the project's own format unless an export choice was saved
+    if (this.proj && !plugin.data.exportOptions?.opening) this.opts.opening = plugin.effectiveFormat(this.proj.file.path).opening;
     this.whole = !!proj && !!seriesScope && !!proj.series && proj.series.folder === seriesScope;
   }
 

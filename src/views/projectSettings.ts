@@ -3,7 +3,7 @@ import { App, Modal, Notice, Setting, TFolder } from "obsidian";
 import { parseStoryDate } from "../dates";
 import { planMove } from "../project/projectMove";
 import { levelsAfterResize, previewLevels, setLevels, changeSeries, findProjects, listSeries, moveProject, profileFor, Project, scriptureOn, setDetectNames, setNumbering, setScripture, setSetupPayoff, setTimelineStart } from "../project/vaultOps";
-import { ConfirmModal, FolderPicker, ListPicker, notifyError, settingsGroup } from "../ui";
+import { captureScroll, ConfirmModal, FolderPicker, ListPicker, notifyError, settingsGroup } from "../ui";
 import { makeLevel, MAX_LEVELS } from "../profiles/structure";
 import type { Level } from "../profiles/profile";
 import { checkProjectFormat } from "../project/vaultOps";
@@ -11,6 +11,8 @@ import { offerFormatFix } from "./formatFix";
 import { ImportMarkdownModal } from "./importMarkdownModal";
 import type BookerPlugin from "../main";
 import { BookerSettingTab } from "../settings";
+import { drawFormatControls } from "../writing/formatControls";
+import { resolveOpening } from "../writing/initials";
 import { ResourceManager } from "./resourceManager";
 import { verifyHealth } from "./healthSupport";
 import { canUseAnyFolder, makeSink, vaultWriter } from "../backup/service";
@@ -29,6 +31,23 @@ export class ProjectSettingsModal extends Modal {
   private tab: "project" | "plugin" = "project";
 
   onOpen() {
+    // drawn again after every change: keep the window and the plugin-settings page where they were scrolled
+    const restore = captureScroll(this.contentEl);
+    const before = this.contentEl.querySelector<HTMLElement>(".booker-set-pluginpage")?.scrollTop ?? 0;
+    this.build();
+    restore();
+    if (before) {
+      const put = () => {
+        const page = this.contentEl.querySelector<HTMLElement>(".booker-set-pluginpage");
+        if (page) page.scrollTop = before;
+      };
+      put();
+      window.requestAnimationFrame(put);
+      window.setTimeout(put, 150);
+    }
+  }
+
+  private build() {
     const { proj } = this;
     const root = this.contentEl;
     root.empty();
@@ -46,19 +65,26 @@ export class ProjectSettingsModal extends Modal {
           this.onOpen();
         });
       }
-      const up = bar.createEl("button", { text: "Check for updates", cls: "booker-set-tab booker-set-tab-end" });
-      up.addEventListener("click", () => void plugin.updater.checkAndOffer());
-      const dl = bar.createEl("button", { text: "Downloads…", cls: "booker-set-tab" });
-      dl.setAttr("aria-label", "Dictionaries, Bibles, church writings, models and maps you can download");
-      dl.addEventListener("click", () => new ResourceManager(plugin).open());
       if (this.tab === "plugin") {
         // the same settings the Obsidian settings page shows: one stored copy, so a change here is a change there
         new BookerSettingTab(this.app, plugin).renderInto(root.createDiv({ cls: "booker-set-pluginpage" }));
-        new Setting(root).addButton((b) => b.setButtonText("Close").onClick(() => this.close()));
+        this.footer(root);
         return;
       }
     }
     this.renderProject(root.createDiv(), proj);
+    this.footer(root);
+  }
+
+  /** The buttons at the bottom of either tab: update check and downloads beside Close. */
+  private footer(root: HTMLElement) {
+    const row = new Setting(root);
+    const plugin = this.plugin;
+    if (plugin) {
+      row.addButton((b) => b.setButtonText("Check for updates").onClick(() => void plugin.updater.checkAndOffer()));
+      row.addButton((b) => b.setButtonText("Downloads…").setTooltip("Dictionaries, Bibles, church writings, models and maps you can download").onClick(() => new ResourceManager(plugin).open()));
+    }
+    row.addButton((b) => b.setButtonText("Close").setCta().onClick(() => this.close()));
   }
 
   private renderProject(contentEl: HTMLElement, proj: Project) {
@@ -122,6 +148,48 @@ export class ProjectSettingsModal extends Modal {
       .addButton((b) => b.setButtonText("Save").setCta().onClick(() => this.saveStart()));
     note = st.createDiv({ cls: "booker-muted" });
 
+    // writing format: this project's own, or the plugin default
+    if (this.plugin) {
+      const plugin = this.plugin;
+      const wf = settingsGroup(contentEl, "proj-writing", "Writing format", false, "indents, spacing, font and the large first letter");
+      const own = plugin.projectFormat(proj);
+      new Setting(wf)
+        .setName("Use the plugin default")
+        .setDesc("On: this project follows the default in Plugin settings, and changes to it. Off: this project has its own writing format.")
+        .addToggle((t) =>
+          t.setValue(!own).onChange(async (v) => {
+            await plugin.setProjectFormat(proj, v ? null : plugin.effectiveFormat(proj.file.path));
+            this.onOpen();
+          })
+        );
+      if (own) {
+        const eff = () => plugin.effectiveFormat(proj.file.path);
+        drawFormatControls(
+          wf,
+          wf,
+          eff,
+          async (patch) => {
+            const cur = eff();
+            await plugin.setProjectFormat(proj, { writing: { ...cur.writing, ...patch.writing }, opening: resolveOpening({ ...cur.opening, ...patch.opening }) });
+          },
+          () => this.onOpen()
+        );
+        new Setting(wf)
+          .setName("Make this the plugin default")
+          .setDesc("Copies these choices to the plugin default. Every project that uses the default changes with it, and this project goes back to using the default.")
+          .addButton((b) =>
+            b.setButtonText("Set as default").onClick(async () => {
+              const cur = eff();
+              plugin.settings.writing = { ...cur.writing };
+              plugin.settings.opening = cur.opening;
+              await plugin.persist();
+              await plugin.setProjectFormat(proj, null);
+              this.onOpen();
+            })
+          );
+      }
+    }
+
     // writing aids
     const aids = settingsGroup(contentEl, "proj-aids", "Writing aids", false);
     new Setting(aids)
@@ -149,7 +217,6 @@ export class ProjectSettingsModal extends Modal {
       .setDesc(`Headings become titles; text between breaks becomes ${w.item} 1, ${w.item} 2…`)
       .addButton((b) => b.setButtonText("Import…").onClick(() => new ImportMarkdownModal(this.app, proj, this.plugin, () => this.onChanged()).open()));
 
-    new Setting(contentEl).addButton((b) => b.setButtonText("Close").onClick(() => this.close()));
   }
 
   /** Name each level, and add or remove levels. Fewer levels merge scenes into chapters; more split chapters at their scene breaks. */

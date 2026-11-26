@@ -12,7 +12,7 @@ describe("chapter opening", () => {
   });
 
   it("is the illuminated artwork by default and falls back to that for bad values", () => {
-    expect(resolveOpening({ style: "nonsense" as never, frame: "x" as never, lines: 9 as never })).toEqual({ style: "art", frame: "none", lines: 3 });
+    expect(resolveOpening({ style: "nonsense" as never, frame: "x" as never, lines: 9 as never })).toEqual({ style: "art", frame: "none", lines: 2 });
   });
 
   it("the illuminated alphabet has all 26 letters", () => {
@@ -44,5 +44,19 @@ describe("epub with the illuminated opening", () => {
     const out = withDropCap(body, undefined, (c) => `${c}.png`);
     expect(out.used).toBe("H");
     expect(out.html).toContain('alt="H"/>ello there.');
+  });
+});
+
+import { openingAttrs } from "../src/writing/openingStyle";
+describe("opening attributes", () => {
+  it("switching the frame leaves nothing of the old one behind", () => {
+    const block = openingAttrs({ style: "cinzel", frame: "block", lines: 3 }).class;
+    const single = openingAttrs({ style: "cinzel", frame: "single", lines: 3 }).class;
+    const none = openingAttrs({ style: "cinzel", frame: "none", lines: 3 }).class;
+    expect(block).toContain("booker-frame-block");
+    expect(single).not.toContain("booker-frame-block");
+    expect(none).not.toContain("booker-frame-block");
+    expect(openingAttrs({ style: "off" }).class).toBe("");
+    expect(openingAttrs({ style: "art", frame: "block", lines: 2 }).class).not.toContain("booker-frame");
   });
 });

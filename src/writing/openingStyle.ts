@@ -16,7 +16,7 @@ let artSheet: HTMLStyleElement | null = null;
 
 /** One rule per letter, with the picture inside the stylesheet, so the editor needs no files. Made once, when the artwork is first chosen. */
 function loadArt() {
-  if (artSheet) return;
+  if (artSheet || typeof document === "undefined") return;
   const toData = (b: Uint8Array) => {
     let bin = "";
     for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000));
@@ -24,20 +24,20 @@ function loadArt() {
   };
   artSheet = document.createElement("style");
   artSheet.id = "booker-initials-art";
-  artSheet.textContent = Object.entries(ILLUMINATED).map(([ch, data]) => `body.booker-open-art .cm-line.nv-first[data-ini="${ch}"]::first-letter { --ini-img: url("${toData(data)}"); }`).join("\n");
+  artSheet.textContent = Object.entries(ILLUMINATED).map(([ch, data]) => `.booker-open-art .cm-line.nv-first[data-ini="${ch}"]::first-letter { --ini-img: url("${toData(data)}"); }`).join("\n");
   document.head.appendChild(artSheet);
 }
 
-/** Put the chosen chapter opening on the page: classes and variables the stylesheet turns into a large first letter. */
-export function applyOpening(o: Partial<Opening> | undefined, el: HTMLElement = document.body) {
+/** The classes and variables that give one editor its chapter opening letter. Nothing when it is off, so no frame or size is left behind. */
+export function openingAttrs(o: Partial<Opening> | undefined): { class: string; style: string } {
   const op = resolveOpening(o);
-  for (const c of Array.from(el.classList)) if (c.startsWith("booker-open")) el.classList.remove(c);
-  if (op.style === "off") return;
-  el.classList.add("booker-open", `booker-open-${op.style}`);
-  el.style.setProperty("--ini-lines", String(op.lines));
+  if (op.style === "off") return { class: "", style: "" };
+  const cls = ["booker-open", `booker-open-${op.style}`];
+  let style = `--ini-lines:${op.lines};`;
   if (isFontStyle(op.style)) {
     loadFont(op.style);
-    el.classList.add(`booker-frame-${op.frame}`);
-    el.style.setProperty("--ini-font", `"${OPENING_FONT_FAMILY[op.style]}"`);
+    cls.push(`booker-frame-${op.frame}`);
+    style += `--ini-font:"${OPENING_FONT_FAMILY[op.style]}";`;
   } else loadArt();
+  return { class: cls.join(" "), style };
 }

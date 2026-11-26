@@ -13,7 +13,7 @@ import { GenService } from "./generate/service";
 import { WritingIndex } from "./semantic/writing";
 import { BibleSemantic } from "./semantic/bibles";
 import { runSelfTest } from "./semantic/selftest";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Extension } from "@codemirror/state";
 import type { Place } from "./reader/place";
 import { QuotedIndex } from "./library/quoted";
 import { entryForLoc } from "./sources/tree";
@@ -90,8 +90,10 @@ import { VIEW_WORLD_MAP, WorldMapView } from "./views/worldMap";
 import { PlacesStore } from "./places/store";
 import { MapsSettingsModal } from "./views/mapsSettings";
 import { hideMarksExtension, refreshMarks } from "./writing/hideMarks";
-import { applyOpening } from "./writing/openingStyle";
-import { applyFormatVars, DEFAULT_FORMAT, refreshFormat, writingExtension, WritingFormat } from "./writing/format";
+import { openingAttrs } from "./writing/openingStyle";
+import { DEFAULT_FORMAT, formatAttrs, refreshFormat, writingExtension, WritingFormat } from "./writing/format";
+import { defaultBundle, effectiveFormat, FORMAT_FM_KEY, readProjectFormat, toFormatFm, type FormatBundle, type FormatFm } from "./writing/projectFormat";
+import { resolveOpening } from "./writing/initials";
 import { formatBarExtension, insertFootnote } from "./writing/bar";
 import { EM_SPACE, outdentLine } from "./writing/lines";
 
@@ -173,10 +175,7 @@ export default class BookerPlugin extends Plugin {
           i.setSection("view").setTitle("Hide formatting marks").setIcon(this.settings.hideMarks ? "check" : "bold").setChecked(this.settings.hideMarks).onClick(() => void this.toggleMarks())
         );
         menu.addItem((i) =>
-          i.setSection("view").setTitle("Book styling").setIcon("indent").setChecked(this.writing().autoIndent).onClick(() => {
-            this.settings.writing = { ...this.writing(), autoIndent: !this.writing().autoIndent };
-            void this.persist().then(() => this.applyWriting());
-          })
+          i.setSection("view").setTitle("Book styling").setIcon("indent").setChecked(this.effectiveFormat(file.path).writing.autoIndent).onClick(() => void this.toggleBookStyling(file.path))
         );
       })
     );
@@ -241,7 +240,9 @@ export default class BookerPlugin extends Plugin {
     this.registerView(VIEW_HEALTH, (leaf) => new HealthView(leaf, this));
     this.registerView(VIEW_INSPECTOR, (leaf) => new LegacyPanel(leaf, this, VIEW_INSPECTOR, "inspector"));
 
-    this.registerEditorExtension([this.detector.extension(), this.localEditExtension(), writingExtension(() => this.writing()), formatBarExtension(this), scriptureAssist(this), aliasAssist(this), vocabAssist(this), hideMarksExtension((s) => this.marksHiddenIn(s))]);
+    // a project note's own format changed (here or by hand): redraw every editor
+    this.registerEvent(this.app.metadataCache.on("changed", (f) => { if (projectOfPath(this.app, f.path)?.file.path === f.path) this.applyWriting(); }));
+    this.registerEditorExtension([this.detector.extension(), this.localEditExtension(), writingExtension((st) => this.effectiveFormat(st.field(editorInfoField, false)?.file?.path).writing), this.formatAttributes(), formatBarExtension(this), scriptureAssist(this), aliasAssist(this), vocabAssist(this), hideMarksExtension((s) => this.marksHiddenIn(s))]);
     this.applyWriting();
 
     this.trackIntent();
@@ -931,10 +932,73 @@ export default class BookerPlugin extends Plugin {
   }
 
   /** Re-typeset every open editor after the format changed. */
+  /** The plugin's default writing format and chapter opening. */
+  defaultFormat(): FormatBundle {
+    return defaultBundle(this.writing(), this.settings.opening);
+  }
+
+  /** The format a note is written in: its project's own, or the plugin default when the project has none. A note outside a project gets the default. */
+  effectiveFormat(path?: string): FormatBundle {
+    const def = this.defaultFormat();
+    const proj = path ? projectOfPath(this.app, path) : null;
+    if (!proj) return def;
+    return effectiveFormat(def, readProjectFormat(this.app.metadataCache.getFileCache(proj.file)?.frontmatter));
+  }
+
+  /** A project's own format, or null when it uses the default. */
+  projectFormat(proj: Project): FormatFm | null {
+    return readProjectFormat(this.app.metadataCache.getFileCache(proj.file)?.frontmatter);
+  }
+
+  /** Give a project its own format (a whole bundle), or null to go back to the plugin default. */
+  async setProjectFormat(proj: Project, b: FormatBundle | null) {
+    // wait for Obsidian to read the note again, so what is shown next is what was just saved
+    const seen = new Promise<void>((done) => {
+      const ref = this.app.metadataCache.on("changed", (f) => {
+        if (f === proj.file) {
+          this.app.metadataCache.offref(ref);
+          done();
+        }
+      });
+      window.setTimeout(() => (this.app.metadataCache.offref(ref), done()), 1500);
+    });
+    await this.app.fileManager.processFrontMatter(proj.file, (fm) => {
+      if (b) fm[FORMAT_FM_KEY] = toFormatFm(b);
+      else delete fm[FORMAT_FM_KEY];
+    });
+    await seen;
+    this.applyWriting();
+  }
+
+  /** Change the format that applies to a note: its project's own when it has one, otherwise the plugin default for every project that uses it. */
+  async patchFormatFor(path: string | undefined, patch: { writing?: Partial<WritingFormat>; opening?: Partial<import("./writing/initials").Opening> }) {
+    const proj = path ? projectOfPath(this.app, path) : null;
+    if (proj && this.projectFormat(proj)) {
+      const cur = this.effectiveFormat(path);
+      return this.setProjectFormat(proj, { writing: { ...cur.writing, ...patch.writing }, opening: resolveOpening({ ...cur.opening, ...patch.opening }) });
+    }
+    if (patch.writing) this.settings.writing = { ...this.writing(), ...patch.writing };
+    if (patch.opening) this.settings.opening = resolveOpening({ ...this.settings.opening, ...patch.opening });
+    await this.persist();
+    this.applyWriting();
+  }
+
+  async toggleBookStyling(path: string) {
+    await this.patchFormatFor(path, { writing: { autoIndent: !this.effectiveFormat(path).writing.autoIndent } });
+  }
+
+  /** The classes and variables each editor gets for its own project's format. */
+  private formatAttributes(): Extension {
+    return EditorView.editorAttributes.of((view) => {
+      const f = this.effectiveFormat(view.state.field(editorInfoField, false)?.file?.path);
+      const w = formatAttrs(f.writing);
+      // Book styling off gives plain paragraphs: no automatic indent and no large first letter
+      const o = openingAttrs(f.writing.autoIndent ? f.opening : { style: "off" });
+      return { class: `${w.class} ${o.class}`.trim(), style: w.style + o.style };
+    });
+  }
+
   applyWriting() {
-    applyFormatVars(this.writing());
-    // Book styling off gives plain paragraphs: no automatic indent and no large first letter
-    applyOpening(this.writing().autoIndent ? this.settings.opening : { style: "off" });
     this.app.workspace.iterateAllLeaves((l) => {
       const cm = (l.view as any)?.editor?.cm;
       cm?.dispatch?.({ effects: refreshFormat.of(null) });
@@ -1200,9 +1264,8 @@ export default class BookerPlugin extends Plugin {
       }).open();
     });
     cmd("toggle-writing-format", "Toggle writing format (indent and spacing)", async () => {
-      this.settings.writing = { ...this.writing(), on: !this.writing().on };
-      await this.persist();
-      this.applyWriting();
+      const path = this.app.workspace.getActiveFile()?.path;
+      await this.patchFormatFor(path, { writing: { on: !this.effectiveFormat(path).writing.on } });
     });
     const lines = (editor: Editor, fn: (s: string) => string) => {
       const a = editor.getCursor("from").line;

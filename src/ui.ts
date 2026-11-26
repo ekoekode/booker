@@ -151,3 +151,19 @@ export function settingsGroup(parent: HTMLElement, key: string, title: string, o
   if (hint) sum.createSpan({ cls: "booker-set-group-hint", text: hint });
   return d.createDiv({ cls: "booker-set-group-body" });
 }
+
+
+/**
+ * Remember how far the element, and everything it sits in, is scrolled, and return a function that puts it back.
+ * Drawing a panel again empties it, which would otherwise throw the reader back to the top after every change.
+ */
+export function captureScroll(el: HTMLElement): () => void {
+  const saved: Array<[HTMLElement, number, number]> = [];
+  for (let e: HTMLElement | null = el; e; e = e.parentElement) if (e.scrollTop || e.scrollLeft) saved.push([e, e.scrollTop, e.scrollLeft]);
+  return () => {
+    const put = () => saved.forEach(([e, y, x]) => ((e.scrollTop = y), (e.scrollLeft = x)));
+    put();
+    window.requestAnimationFrame(put);
+    window.setTimeout(put, 150);
+  };
+}
