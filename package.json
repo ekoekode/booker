@@ -1,6 +1,6 @@
 {
   "name": "booker",
-  "version": "0.72.4",
+  "version": "0.72.5",
   "description": "Write multi-book novels in Obsidian: series, codex, timeline, plotlines, stats and Word/ePub/PDF export.",
   "main": "main.js",
   "scripts": {

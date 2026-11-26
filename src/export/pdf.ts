@@ -1,4 +1,4 @@
-import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFImage, PDFPage, StandardFonts, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import { actHeading, chapterHeading, ExportOptions } from "./headings";
 import { cleanXml } from "../text";
@@ -8,6 +8,8 @@ import { hasHebrew, scriptSegments, visualHebrew } from "./script";
 import { breakLines } from "./linebreak";
 import { resolveLayout } from "./layout";
 import { bookNotes, chapterNotes, hasNotes, numberNotes } from "./notes";
+import { dropLetter, isFontStyle, resolveOpening } from "../writing/initials";
+import { ILLUMINATED, OPENING_FONT_FILES } from "../writing/initialsData";
 
 const PT = 72;
 
@@ -121,6 +123,26 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
   let hebrewFont: PDFFont | null = null;
   const needsHebrew = m.acts.some((a) => a.chapters.some((c) => c.scenes.some((sc) => sc.blocks.some((b) => b.kind !== "rule" && b.runs.some((r) => hasHebrew(r.text) || (r.note?.some((n) => hasHebrew(n.text))))))));
   if (needsHebrew) hebrewFont = await doc.embedFont(HEBREW_FONT, { subset: true });
+
+  // the large first letter of each chapter: the chosen font, or the illuminated artwork (when the assets are real bytes)
+  const opening = resolveOpening(opts.opening);
+  let openFont: PDFFont | null = null;
+  const openArt = new Map<string, PDFImage>();
+  if (isFontStyle(opening.style)) {
+    const bytes = OPENING_FONT_FILES[opening.style].data as unknown;
+    if (bytes instanceof Uint8Array) openFont = await doc.embedFont(bytes, { subset: true });
+  } else if (opening.style === "art") {
+    const letters = new Set<string>();
+    for (const act of m.acts) for (const ch of act.chapters) {
+      const first = ch.scenes[0]?.blocks.find((b) => b.kind === "p");
+      const l = first && first.kind === "p" ? dropLetter(first.runs[0]?.text ?? "")?.ch : undefined;
+      if (l) letters.add(l);
+    }
+    for (const l of letters) {
+      const bytes = ILLUMINATED[l] as unknown;
+      if (bytes instanceof Uint8Array) openArt.set(l, await doc.embedPng(bytes));
+    }
+  }
 
   const lay: Layout = {
     pageW: rl.pageW * PT,
@@ -336,7 +358,62 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
     after?: number;
     font?: PDFFont;
     keepNext?: boolean;
+    /** a large first letter that this many lines of the paragraph wrap around */
+    drop?: boolean;
   }
+
+  interface Cap {
+    ch: string;
+    lines: number;
+    boxW: number;
+    boxH: number;
+    /** the space between the letter and the text, and so how far the first lines move in */
+    shift: number;
+    runs: Run[];
+  }
+
+  /** The letter taken off the front of a paragraph, and the room it needs. Null when the paragraph cannot have one. */
+  const makeCap = (runs: Run[], size: number, leading: number): Cap | null => {
+    if (opening.style === "off") return null;
+    const first = runs[0];
+    const dl = first && !first.note && !first.sup ? dropLetter(first.text) : null;
+    if (!dl) return null;
+    const lines = opening.lines;
+    const boxH = (lines - 1) * leading + size * 0.7 + size * 0.14;
+    let boxW: number;
+    if (opening.style === "art") {
+      const img = openArt.get(dl.ch);
+      if (!img) return null;
+      boxW = (boxH * img.width) / img.height;
+    } else {
+      if (!openFont) return null;
+      const fs = boxH * (opening.frame === "none" ? 0.9 : 0.74);
+      boxW = opening.frame === "none" ? widthOf(openFont, dl.ch, fs) + size * 0.1 : Math.max(boxH * 0.78, widthOf(openFont, dl.ch, fs) + boxH * 0.3);
+    }
+    return { ch: dl.ch, lines, boxW, boxH, shift: boxW + size * (opening.style === "art" ? 0.28 : 0.4), runs: [{ ...first, text: dl.rest }, ...runs.slice(1)] };
+  };
+
+  const drawCap = (page: PDFPage, cap: Cap, x: number, top: number, size: number) => {
+    const bottom = top - cap.boxH;
+    if (opening.style === "art") {
+      page.drawImage(openArt.get(cap.ch)!, { x, y: bottom, width: cap.boxW, height: cap.boxH });
+      return;
+    }
+    const f = openFont!;
+    const ink = rgb(0, 0, 0);
+    const paper = rgb(1, 1, 1);
+    const fs = cap.boxH * (opening.frame === "none" ? 0.9 : 0.74);
+    const framed = opening.frame !== "none";
+    if (opening.frame === "block") page.drawRectangle({ x, y: bottom, width: cap.boxW, height: cap.boxH, color: ink });
+    else if (opening.frame === "single") page.drawRectangle({ x, y: bottom, width: cap.boxW, height: cap.boxH, borderColor: ink, borderWidth: 1 });
+    else if (opening.frame === "double") {
+      page.drawRectangle({ x, y: bottom, width: cap.boxW, height: cap.boxH, borderColor: ink, borderWidth: 1.4 });
+      page.drawRectangle({ x: x + 3.2, y: bottom + 3.2, width: cap.boxW - 6.4, height: cap.boxH - 6.4, borderColor: ink, borderWidth: 0.5 });
+    }
+    const w = widthOf(f, cap.ch, fs);
+    const baseline = framed ? bottom + (cap.boxH - fs * 0.7) / 2 : bottom + size * 0.12 * 0.5;
+    page.drawText(cap.ch, { x: x + (cap.boxW - w) / 2, y: baseline, size: fs, font: f, color: opening.frame === "block" ? paper : ink });
+  };
 
   const addParagraph = (runs: Run[], o: ParaOpts = {}) => {
     const size = o.size ?? lay.size;
@@ -346,15 +423,31 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
     const idx = pages.length - 1;
     const left0 = leftMargin(idx) + (o.left ?? 0);
     const width = textWidth() - (o.left ?? 0) - (o.right ?? 0);
-    const atoms = toAtoms(runs, size, o.font);
+    const cap = o.drop ? makeCap(runs, size, leading) : null;
+    const atoms = toAtoms(cap ? cap.runs : runs, size, o.font);
     if (!atoms.length) return;
-    const ind = o.indent ? lay.indent : 0;
-    const lines = breakAtoms(atoms, width - ind, width, size);
+    const ind = cap ? 0 : o.indent ? lay.indent : 0;
+    const shift = cap?.shift ?? 0;
+    let lines: Array<[number, number]>;
+    if (cap) {
+      // the first lines are narrower by the letter's width; the rest run the full width, so the text wraps underneath it
+      const first = breakAtoms(atoms, width - shift, width - shift, size).slice(0, cap.lines);
+      const from = first.length ? first[first.length - 1][1] : 0;
+      const tail = atoms.splice(from);
+      const rest = breakAtoms(tail, width, width, size);
+      atoms.push(...tail);
+      lines = [...first, ...rest.map(([a, b]): [number, number] => [a + from, b + from])];
+    } else lines = breakAtoms(atoms, width - ind, width, size);
     let li = 0;
     while (li < lines.length) {
       const remaining = lines.length - li;
       let fit = Math.floor((y - bottomLimit()) / leading);
       if (fit < 1) {
+        newPage("body");
+        continue;
+      }
+      // a large first letter and the lines beside it stay on one page
+      if (cap && li === 0 && fit < Math.min(cap.lines, remaining)) {
         newPage("body");
         continue;
       }
@@ -382,9 +475,11 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
         }
         const isFirst = li === 0;
         const isLast = li === lines.length - 1;
-        const avail = isFirst ? width - ind : width;
-        let x = x0 + (isFirst ? ind : 0);
+        const beside = !!cap && li < cap.lines;
+        const avail = beside ? width - shift : isFirst ? width - ind : width;
+        let x = x0 + (beside ? shift : isFirst ? ind : 0);
         y -= leading;
+        if (cap && isFirst) drawCap(pg.page, cap, x0, y + size * 0.7, size);
         const align = o.align ?? (lay.justify ? "justify" : "left");
         if (align === "center") {
           let sum = 0;
@@ -401,6 +496,8 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
       void left0;
       if (li < lines.length) newPage("body");
     }
+    // a paragraph shorter than the letter leaves room for the rest of it
+    if (cap && lines.length < cap.lines) y -= (cap.lines - lines.length) * leading;
     const gap = o.after ?? (o.size === undefined ? rl.paraAfter : 0);
     if (gap) y -= gap;
   };
@@ -478,9 +575,10 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
     for (const b of blocks) {
       switch (b.kind) {
         case "p":
-          addParagraph(b.runs, { indent: !(firstPara && afterBreak) && !(firstPara && opener) });
+          addParagraph(b.runs, { indent: !(firstPara && afterBreak) && !(firstPara && opener), drop: dropPending });
           firstPara = false;
           opener = false;
+          dropPending = false;
           break;
         case "quote":
           addParagraph(b.runs, { left: lay.manuscript ? 36 : 18, right: lay.manuscript ? 36 : 18, font: undefined, before: 2, after: 2 });
@@ -504,6 +602,7 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
     }
   };
   let opener = false;
+  let dropPending = false;
 
   const sceneBreak = () => {
     ensure(lay.leading * 3);
@@ -547,10 +646,12 @@ export async function buildPdf(m0: Manuscript, opts: ExportOptions, breakMark0: 
         else centered(h.title, { size: 17, font: fonts.italic, after: 30 });
       }
       opener = true;
+      dropPending = opening.style !== "off";
       ch.scenes.forEach((sc, i) => {
         if (i > 0) sceneBreak();
         renderBlocks(sc.blocks, i > 0);
         opener = false;
+        dropPending = false;
       });
       if (!notesAtBookEnd && !notesBottom) {
         const notes = chapterNotes(ch);

@@ -53,7 +53,7 @@ export function drawFormatControls(
   };
   new Setting(opening)
     .setName("First letter")
-    .setDesc("A large first letter on the first paragraph of each chapter, in the editor (while Book styling is on) and in exported ePub books. The text wraps beside it and underneath.")
+    .setDesc("A large first letter on the first paragraph of each chapter, in the editor (while Book styling is on) and in exported ePub, PDF and Word books. The text wraps beside it and underneath.")
     .addDropdown((d) => d.addOptions(OPENING_STYLE_LABELS).setValue(o().style).onChange((v) => void setO({ style: v as Opening["style"] })));
   if (isFontStyle(o().style))
     new Setting(opening)

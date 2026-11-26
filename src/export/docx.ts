@@ -1,11 +1,18 @@
 import JSZip from "jszip";
 import {
   AlignmentType,
+  BorderStyle,
   Document,
+  DropCapType,
   Footer,
   FootnoteReferenceRun,
+  FrameAnchorType,
+  FrameWrap,
   Header,
   HeadingLevel,
+  HorizontalPositionAlign,
+  HorizontalPositionRelativeFrom,
+  ImageRun,
   IParagraphOptions,
   LineRuleType,
   Packer,
@@ -13,9 +20,15 @@ import {
   PageNumber,
   Paragraph,
   SectionType,
+  ShadingType,
   TabStopType,
   TextRun,
+  TextWrappingSide,
+  TextWrappingType,
+  VerticalPositionRelativeFrom,
 } from "docx";
+import { dropLetter, isFontStyle, resolveOpening, type Opening } from "../writing/initials";
+import { ILLUMINATED, OPENING_FONT_FILES } from "../writing/initialsData";
 import { actHeading, chapterHeading, ExportOptions } from "./headings";
 import { resolveLayout } from "./layout";
 import { cleanXml } from "../text";
@@ -83,7 +96,57 @@ interface Style {
   after: number;
 }
 
-function bodyParagraphs(blocks: Block[], st: Style, afterBreak: boolean): Paragraph[] {
+/** Word's names for the opening fonts. Word uses them if they are installed on the reader's computer and falls back to another font if not. */
+const WORD_FONT = { fell: "IM FELL Double Pica", jacquard: "Jacquard 24", cinzel: "Cinzel Decorative" } as const;
+
+/** The chapter's first paragraph with its large first letter: the artwork as a floating picture the text wraps around, or a Word drop cap in the chosen font. */
+function dropCapParagraphs(rs: Run[], base: IParagraphOptions, st: Style, o: Opening): Paragraph[] | null {
+  const first = rs[0];
+  const dl = first && !first.note && !first.sup ? dropLetter(first.text) : null;
+  if (!dl) return null;
+  const rest: Run[] = [{ ...first, text: dl.rest }, ...rs.slice(1)];
+  const body = (extra: Partial<IParagraphOptions> = {}, lead: Array<Mark | ImageRun> = []) => new Paragraph({ ...base, indent: { firstLine: 0 }, ...extra, children: [...lead, ...runs(rest, st.font, st.size)] as Mark[] });
+  if (o.style === "art") {
+    const png = ILLUMINATED[dl.ch] as unknown;
+    if (!(png instanceof Uint8Array)) return null;
+    // as tall as the chosen number of lines of text (a line is the font size times the line spacing, with a little for Word's own spacing)
+    const linePt = (st.size / 2) * (st.line / 240) * 1.2;
+    const h = Math.round(((o.lines * linePt - 2) * 96) / 72);
+    const w = Math.round((h * 301) / 323);
+    const pic = new ImageRun({
+      type: "png",
+      data: png,
+      transformation: { width: w, height: h },
+      floating: {
+        horizontalPosition: { relative: HorizontalPositionRelativeFrom.MARGIN, align: HorizontalPositionAlign.LEFT },
+        verticalPosition: { relative: VerticalPositionRelativeFrom.PARAGRAPH, offset: 0 },
+        wrap: { type: TextWrappingType.SQUARE, side: TextWrappingSide.BOTH_SIDES },
+        margins: { right: 76200, left: 0, top: 0, bottom: 0 },
+      },
+    });
+    return [body({}, [pic])];
+  }
+  if (!isFontStyle(o.style)) return null;
+  const line = { style: BorderStyle.SINGLE, size: 8, color: "000000", space: 2 };
+  const frameBorder = o.frame === "single" ? line : o.frame === "double" ? { style: BorderStyle.DOUBLE, size: 8, color: "000000", space: 2 } : undefined;
+  const block = o.frame === "block";
+  const cap = new Paragraph({
+    frame: { type: "absolute", position: { x: 0, y: 0 }, anchor: { horizontal: FrameAnchorType.TEXT, vertical: FrameAnchorType.TEXT }, dropCap: DropCapType.DROP, lines: o.lines, wrap: FrameWrap.AROUND },
+    spacing: { line: st.line, lineRule: LineRuleType.AUTO, before: 0, after: 0 },
+    ...(frameBorder && { border: { top: frameBorder, bottom: frameBorder, left: frameBorder, right: frameBorder } }),
+    ...(block && { shading: { type: ShadingType.CLEAR, fill: "000000", color: "auto" } }),
+    children: [new TextRun({ text: dl.ch, font: WORD_FONT[o.style], size: st.size * o.lines, bold: OPENING_FONT_FILES[o.style].weight === "bold", ...(block && { color: "FFFFFF" }) })],
+  });
+  return [cap, body()];
+}
+
+interface DropState {
+  /** the large first letter is still to be put on the next paragraph */
+  pending: boolean;
+  opening: Opening;
+}
+
+function bodyParagraphs(blocks: Block[], st: Style, afterBreak: boolean, drop?: DropState): Paragraph[] {
   const out: Paragraph[] = [];
   let firstInScene = true;
   for (const b of blocks) {
@@ -94,7 +157,10 @@ function bodyParagraphs(blocks: Block[], st: Style, afterBreak: boolean): Paragr
     switch (b.kind) {
       case "p": {
         const noIndent = firstInScene && afterBreak;
-        out.push(new Paragraph({ ...base, indent: { firstLine: noIndent ? 0 : st.indent }, children: runs(b.runs, st.font, st.size) }));
+        const capped = drop?.pending ? dropCapParagraphs(b.runs, base, st, drop.opening) : null;
+        if (drop) drop.pending = false;
+        if (capped) out.push(...capped);
+        else out.push(new Paragraph({ ...base, indent: { firstLine: noIndent ? 0 : st.indent }, children: runs(b.runs, st.font, st.size) }));
         firstInScene = false;
         break;
       }
@@ -160,6 +226,7 @@ export async function buildDocx(m0: Manuscript, opts: ExportOptions, sceneBreakM
   // Word numbers page-bottom footnotes itself, straight through the document
   const m = numberNotes(cleanManuscript(m0), noteMode === "bottom" ? "book" : opts.noteNumbering ?? "chapter");
   const sceneBreakMark = cleanXml(sceneBreakMark0);
+  const opening = resolveOpening(opts.opening);
   const manuscript = opts.preset === "manuscript";
   const lay = resolveLayout(opts);
   const st: Style = {
@@ -279,9 +346,11 @@ export async function buildDocx(m0: Manuscript, opts: ExportOptions, sceneBreakM
         );
       }
       firstChapter = false;
+      const drop: DropState = { pending: opening.style !== "off", opening };
       ch.scenes.forEach((sc, i) => {
         if (i > 0) body.push(sceneBreak(st));
-        body.push(...bodyParagraphs(sc.blocks, st, i > 0 || true));
+        body.push(...bodyParagraphs(sc.blocks, st, i > 0 || true, drop));
+        drop.pending = false;
       });
       if (noteMode === "chapter") {
         const notes = chapterNotes(ch);

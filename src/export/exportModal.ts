@@ -112,7 +112,7 @@ export class ExportModal extends Modal {
 
     new Setting(contentEl)
       .setName("Chapter opening letter")
-      .setDesc("A large first letter on each chapter's first paragraph. Separate from the editor's Book styling, so you can turn it off for one export. ePub for now.")
+      .setDesc("A large first letter on each chapter's first paragraph. Separate from the editor's Book styling, so you can turn it off for one export. In ePub, PDF and Word.")
       .addDropdown((d) =>
         d.addOptions(OPENING_STYLE_LABELS).setValue(resolveOpening(this.opts.opening).style).onChange((v) => {
           this.opts.opening = { ...resolveOpening(this.opts.opening), style: v as Opening["style"] };
